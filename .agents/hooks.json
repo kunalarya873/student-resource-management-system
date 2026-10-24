@@ -1,0 +1,39 @@
+{
+  "safety-guard": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ./scripts/safety_guard.py",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  },
+  "context-sentinel": {
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "python3 ./scripts/pre_invocation_context.py",
+        "timeout": 10
+      }
+    ]
+  },
+  "audit-tracker": {
+    "PostToolUse": [
+      {
+        "matcher": "write_to_file|replace_file_content|multi_replace_file_content",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ./scripts/post_tool_auditor.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

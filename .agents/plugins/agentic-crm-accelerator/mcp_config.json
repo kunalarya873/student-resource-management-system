@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "crm-accelerator-tools": {
+      "command": "python3",
+      "args": [
+        "../../mcp/crm_inspector_server.py"
+      ],
+      "env": {
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+  }
+}

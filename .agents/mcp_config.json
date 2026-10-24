@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "crm-inspector": {
+      "command": "python3",
+      "args": [
+        "./.agents/mcp/crm_inspector_server.py"
+      ],
+      "env": {
+        "PYTHONUNBUFFERED": "1"
+      }
+    },
+    "sqlite-crm": {
+      "command": "uvx",
+      "args": [
+        "mcp-server-sqlite",
+        "--db-path",
+        "./nfc/saas-backend/db.sqlite3"
+      ]
+    }
+  }
+}

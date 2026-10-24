@@ -1,0 +1,16 @@
+{
+  "crm-migration-guard": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"import sys, json; data=json.load(sys.stdin); cmd=data.get('toolCall',{}).get('args',{}).get('CommandLine',''); print(json.dumps({'decision': 'deny', 'reason': 'Direct flush/zeroing of database is blocked.'} if 'migrate zero' in cmd or 'flush' in cmd else {'decision': 'allow'}))\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
