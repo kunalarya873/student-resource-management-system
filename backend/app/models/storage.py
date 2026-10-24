@@ -29,15 +29,9 @@ class StorageObject(Base):
         ForeignKey("resource_versions.version_id", ondelete="CASCADE"),
         nullable=True,
     )
-    object_key: Mapped[str] = mapped_column(
-        String(500), unique=True, index=True, nullable=False
-    )
-    storage_provider: Mapped[str] = mapped_column(
-        String(50), default="MINIO", nullable=False
-    )
-    verification_status: Mapped[str] = mapped_column(
-        String(30), default="PENDING", nullable=False
-    )
+    object_key: Mapped[str] = mapped_column(String(500), unique=True, index=True, nullable=False)
+    storage_provider: Mapped[str] = mapped_column(String(50), default="MINIO", nullable=False)
+    verification_status: Mapped[str] = mapped_column(String(30), default="PENDING", nullable=False)
     byte_size: Mapped[int] = mapped_column(BigInteger, default=0, nullable=False)
     checksum: Mapped[str | None] = mapped_column(String(128), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -108,9 +102,7 @@ class UploadReservation(Base):
         nullable=True,
     )
     error_message: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    expires_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

@@ -44,14 +44,10 @@ class StorageService:
             except ClientError as exc:
                 error_code = exc.response.get("Error", {}).get("Code")
                 if error_code in ("404", "NoSuchBucket"):
-                    logger.info(
-                        "Bucket %s not found. Creating...", settings.S3_BUCKET_NAME
-                    )
+                    logger.info("Bucket %s not found. Creating...", settings.S3_BUCKET_NAME)
                     await s3.create_bucket(Bucket=settings.S3_BUCKET_NAME)
                 else:
-                    logger.error(
-                        "Failed to inspect bucket %s: %s", settings.S3_BUCKET_NAME, exc
-                    )
+                    logger.error("Failed to inspect bucket %s: %s", settings.S3_BUCKET_NAME, exc)
                     raise
 
     async def generate_presigned_upload_url(
@@ -110,9 +106,7 @@ class StorageService:
         """Verify presence, length, and ETag of an object in MinIO/S3 via HeadObject."""
         async with self.get_client() as s3:
             try:
-                response = await s3.head_object(
-                    Bucket=settings.S3_BUCKET_NAME, Key=object_key
-                )
+                response = await s3.head_object(Bucket=settings.S3_BUCKET_NAME, Key=object_key)
                 content_length = int(response.get("ContentLength", 0))
                 etag = str(response.get("ETag", "")).strip('"')
                 return True, content_length, etag
@@ -123,9 +117,7 @@ class StorageService:
                 logger.warning("Error checking object %s: %s", object_key, exc)
                 return False, 0, ""
             except Exception as exc:  # noqa: BLE001
-                logger.warning(
-                    "Unexpected error checking object %s: %s", object_key, exc
-                )
+                logger.warning("Unexpected error checking object %s: %s", object_key, exc)
                 return False, 0, ""
 
     async def delete_object(self, object_key: str) -> bool:

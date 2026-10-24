@@ -47,3 +47,7 @@ class FolderContentsResponse(BaseModel):
     breadcrumbs: list[BreadcrumbItem]
     subfolders: list[FolderRead]
     resources: list[FolderResourceItem]
+    page: int = Field(default=1, description="Current page number")
+    limit: int = Field(default=50, description="Items per page")
+    total_subfolders: int = Field(default=0, description="Total count of subfolders")
+    total_resources: int = Field(default=0, description="Total count of resources")

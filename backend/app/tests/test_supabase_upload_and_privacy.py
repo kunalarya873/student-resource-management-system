@@ -29,9 +29,7 @@ async def test_direct_resource_upload_segregated_folder_and_privacy(
     headers = {"Authorization": f"Bearer {student_token}"}
 
     # Fetch current student user
-    student = await db_session.scalar(
-        select(User).where(User.email == "student@amu.edu")
-    )
+    student = await db_session.scalar(select(User).where(User.email == "student@amu.edu"))
     assert student is not None
 
     # Create a user folder
@@ -40,9 +38,7 @@ async def test_direct_resource_upload_segregated_folder_and_privacy(
     await db_session.commit()
     await db_session.refresh(folder)
 
-    unique_key = (
-        f"users/{student.user_id}/PhysicsNotes/{uuid.uuid4().hex[:8]}_test_lecture.png"
-    )
+    unique_key = f"users/{student.user_id}/PhysicsNotes/{uuid.uuid4().hex[:8]}_test_lecture.png"
     mock_upload_result = {
         "object_key": unique_key,
         "byte_size": 256,
@@ -108,12 +104,8 @@ async def test_upload_to_another_users_folder_forbidden(
     async_client: AsyncClient, db_session: AsyncSession
 ):
     """Verify students cannot place resources in another user's folder (EC-05.2)."""
-    teacher = await db_session.scalar(
-        select(User).where(User.email == "teacher@amu.edu")
-    )
-    student = await db_session.scalar(
-        select(User).where(User.email == "student@amu.edu")
-    )
+    teacher = await db_session.scalar(select(User).where(User.email == "teacher@amu.edu"))
+    student = await db_session.scalar(select(User).where(User.email == "student@amu.edu"))
     assert teacher is not None and student is not None
 
     # Teacher creates a folder
@@ -156,12 +148,8 @@ async def test_privacy_on_download_and_sharing_lifecycle(
     headers_student = {"Authorization": f"Bearer {student_token}"}
     headers_teacher = {"Authorization": f"Bearer {teacher_token}"}
 
-    student = await db_session.scalar(
-        select(User).where(User.email == "student@amu.edu")
-    )
-    teacher = await db_session.scalar(
-        select(User).where(User.email == "teacher@amu.edu")
-    )
+    student = await db_session.scalar(select(User).where(User.email == "student@amu.edu"))
+    teacher = await db_session.scalar(select(User).where(User.email == "teacher@amu.edu"))
     assert student is not None and teacher is not None
 
     mock_upload_result = {
@@ -173,9 +161,7 @@ async def test_privacy_on_download_and_sharing_lifecycle(
     }
 
     # 1. Student uploads private resource
-    with patch.object(
-        SupabaseStorageService, "upload_file_async", return_value=mock_upload_result
-    ):
+    with patch.object(SupabaseStorageService, "upload_file_async", return_value=mock_upload_result):
         create_res = await async_client.post(
             "/api/v1/resources/upload",
             headers=headers_student,
@@ -209,10 +195,7 @@ async def test_privacy_on_download_and_sharing_lifecycle(
             headers=headers_student,
         )
         assert dl_owner.status_code == 200
-        assert (
-            dl_owner.json()["download_url"]
-            == "https://supabase.co/signed-url-private-sheet"
-        )
+        assert dl_owner.json()["download_url"] == "https://supabase.co/signed-url-private-sheet"
 
     # 4. Student shares with teacher
     share_res = await async_client.post(
@@ -234,10 +217,7 @@ async def test_privacy_on_download_and_sharing_lifecycle(
             headers=headers_teacher,
         )
         assert dl_teacher.status_code == 200
-        assert (
-            dl_teacher.json()["download_url"]
-            == "https://supabase.co/signed-url-for-teacher"
-        )
+        assert dl_teacher.json()["download_url"] == "https://supabase.co/signed-url-for-teacher"
 
     # 6. Student revokes share grant
     revoke_res = await async_client.delete(
@@ -280,7 +260,5 @@ async def test_supabase_storage_service_unit():
         assert result["storage_provider"] == "SUPABASE"
         assert result["byte_size"] == 18
 
-        signed_url = await SupabaseStorageService.create_signed_download_url(
-            result["object_key"]
-        )
+        signed_url = await SupabaseStorageService.create_signed_download_url(result["object_key"])
         assert signed_url == "https://signed.url"

@@ -40,9 +40,7 @@ async def seed_database() -> dict[str, int]:
             },
         ]
         for r in roles_data:
-            existing_role = await session.scalar(
-                select(Role).where(Role.role_id == r["role_id"])
-            )
+            existing_role = await session.scalar(select(Role).where(Role.role_id == r["role_id"]))
             if not existing_role:
                 session.add(Role(**r))
                 counts["roles"] += 1
@@ -78,9 +76,7 @@ async def seed_database() -> dict[str, int]:
         ]
         for y in years_data:
             existing_year = await session.scalar(
-                select(AcademicYear).where(
-                    AcademicYear.academic_year_id == y["academic_year_id"]
-                )
+                select(AcademicYear).where(AcademicYear.academic_year_id == y["academic_year_id"])
             )
             if not existing_year:
                 session.add(AcademicYear(**y))
@@ -151,9 +147,7 @@ async def seed_database() -> dict[str, int]:
 
         created_users: dict[str, User] = {}
         for u in users_data:
-            existing_user = await session.scalar(
-                select(User).where(User.email == u["email"])
-            )
+            existing_user = await session.scalar(select(User).where(User.email == u["email"]))
             if not existing_user:
                 user_obj = User(
                     email=u["email"],
@@ -198,11 +192,7 @@ async def seed_database() -> dict[str, int]:
                     )
                 )
                 if not enrollment:
-                    session.add(
-                        StudentSubject(
-                            student_id=student_user.user_id, subject_id=sub_id
-                        )
-                    )
+                    session.add(StudentSubject(student_id=student_user.user_id, subject_id=sub_id))
 
         if teacher_user:
             for sub_id in [1, 2]:
@@ -213,11 +203,7 @@ async def seed_database() -> dict[str, int]:
                     )
                 )
                 if not assignment:
-                    session.add(
-                        TeacherSubject(
-                            teacher_id=teacher_user.user_id, subject_id=sub_id
-                        )
-                    )
+                    session.add(TeacherSubject(teacher_id=teacher_user.user_id, subject_id=sub_id))
 
     print(f"Database seeding completed: {counts}")
     return counts

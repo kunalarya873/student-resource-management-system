@@ -2,7 +2,7 @@ import logging
 import uuid
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -11,6 +11,7 @@ from app.models.folder import Folder
 from app.models.resource import Resource, ResourceAccess, ResourceVersion
 from app.models.storage import StorageObject, UploadReservation
 from app.models.user import User
+from app.repositories.folder_repository import folder_repository
 from app.repositories.resource_repository import resource_repository
 from app.repositories.sharing_repository import sharing_repository
 from app.schemas.resource import (
@@ -98,10 +99,7 @@ class ResourceService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Upload reservation must be completed before attaching to a resource.",
                 )
-            if (
-                reservation.user_id != user.user_id
-                and user.role.name != "Administrator"
-            ):
+            if reservation.user_id != user.user_id and user.role.name != "Administrator":
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="You do not own this upload reservation.",
@@ -120,9 +118,7 @@ class ResourceService:
             await session.flush()
 
             # Link storage object to this version
-            stmt = select(StorageObject).where(
-                StorageObject.object_key == reservation.object_key
-            )
+            stmt = select(StorageObject).where(StorageObject.object_key == reservation.object_key)
             storage_obj = await session.scalar(stmt)
             if storage_obj:
                 storage_obj.version_id = version.version_id
@@ -292,10 +288,7 @@ class ResourceService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Upload reservation must be completed before attaching as a version.",
                 )
-            if (
-                reservation.user_id != user.user_id
-                and user.role.name != "Administrator"
-            ):
+            if reservation.user_id != user.user_id and user.role.name != "Administrator":
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="You do not own this upload reservation.",
@@ -313,9 +306,7 @@ class ResourceService:
             session.add(new_version)
             await session.flush()
 
-            stmt = select(StorageObject).where(
-                StorageObject.object_key == reservation.object_key
-            )
+            stmt = select(StorageObject).where(StorageObject.object_key == reservation.object_key)
             storage_obj = await session.scalar(stmt)
             if storage_obj:
                 storage_obj.version_id = new_version.version_id
@@ -337,10 +328,18 @@ class ResourceService:
         resource_id: uuid.UUID,
     ) -> Resource:
         """Retrieve resource details and enforce authorization guards (EC-06.1, EC-06.4)."""
-        resource = await resource_repository.get_by_id_with_details(
-            session, resource_id
-        )
+        resource = await resource_repository.get_by_id_with_details(session, resource_id)
         if not resource:
+            folder = await folder_repository.get_by_id(session, resource_id)
+            if folder:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=(
+                        f"Resource not found. The specified ID '{resource_id}' is a Folder ('{folder.name}'). "
+                        f"To view contents of this folder, use GET /api/v1/folders/{resource_id}/contents or "
+                        f"GET /api/v1/resources?folder_id={resource_id}."
+                    ),
+                )
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Resource not found.",
@@ -355,9 +354,7 @@ class ResourceService:
         cls, session: AsyncSession, resource: Resource, user: User
     ) -> None:
         """Enforce access rules: Owner & Admin have full access; explicit share grant or approved visibility."""
-        if (
-            user.role and user.role.name == "Administrator"
-        ) or resource.owner_id == user.user_id:
+        if (user.role and user.role.name == "Administrator") or resource.owner_id == user.user_id:
             return
 
         # Check explicit sharing grant via sharing_repository (Phase 7)
@@ -390,19 +387,24 @@ class ResourceService:
         folder_id: uuid.UUID | None = None,
         subject_id: int | None = None,
         academic_year_id: int | None = None,
+        status: str | None = None,
+        visibility: str | None = None,
+        q: str | None = None,
+        sort_by: str = "created_at",
+        order: str = "desc",
         limit: int = 50,
         offset: int = 0,
+        page: int | None = None,
     ) -> list[Resource]:
-        """List resources accessible to the user with optional filters."""
-        stmt = (
-            select(Resource)
-            .options(
-                selectinload(Resource.versions),
-                selectinload(Resource.owner),
-            )
-            .order_by(Resource.created_at.desc())
-            .limit(limit)
-            .offset(offset)
+        """List resources accessible to the user with optional filters, search, sorting, and pagination."""
+        if page is not None:
+            page = max(1, page)
+            limit = max(1, min(limit, 100))
+            offset = (page - 1) * limit
+
+        stmt = select(Resource).options(
+            selectinload(Resource.versions),
+            selectinload(Resource.owner),
         )
 
         if user.role.name != "Administrator":
@@ -434,6 +436,30 @@ class ResourceService:
             stmt = stmt.where(Resource.subject_id == subject_id)
         if academic_year_id is not None:
             stmt = stmt.where(Resource.academic_year_id == academic_year_id)
+        if status is not None:
+            stmt = stmt.where(Resource.status == status)
+        if visibility is not None:
+            stmt = stmt.where(Resource.visibility == visibility)
+        if q and q.strip():
+            clean_q = q.strip()
+            stmt = stmt.where(
+                or_(
+                    Resource.title.ilike(f"%{clean_q}%"),
+                    Resource.description.ilike(f"%{clean_q}%"),
+                )
+            )
+
+        # Dynamic sorting
+        sort_col = Resource.created_at
+        if sort_by == "title":
+            sort_col = Resource.title
+        elif sort_by == "status":
+            sort_col = Resource.status
+        elif sort_by == "visibility":
+            sort_col = Resource.visibility
+
+        stmt = stmt.order_by(sort_col.desc()) if order == "desc" else stmt.order_by(sort_col.asc())
+        stmt = stmt.limit(limit).offset(offset)
 
         resources = (await session.scalars(stmt)).all()
         return list(resources)
@@ -493,9 +519,7 @@ class ResourceService:
                 total_file_bytes += v.size_bytes
 
         if total_file_bytes > 0:
-            await QuotaService.release_quota(
-                session, resource.owner_id, total_file_bytes
-            )
+            await QuotaService.release_quota(session, resource.owner_id, total_file_bytes)
 
         await session.delete(resource)
         await session.commit()
@@ -545,9 +569,7 @@ class ResourceService:
             )
 
         # File-backed: fetch StorageObject
-        stmt = select(StorageObject).where(
-            StorageObject.version_id == target_version.version_id
-        )
+        stmt = select(StorageObject).where(StorageObject.version_id == target_version.version_id)
         storage_obj = await session.scalar(stmt)
         if not storage_obj:
             raise HTTPException(
@@ -596,11 +618,7 @@ class ResourceService:
             )
             for v in res.versions
         ]
-        current_v = (
-            max(version_reads, key=lambda v: v.version_number)
-            if version_reads
-            else None
-        )
+        current_v = max(version_reads, key=lambda v: v.version_number) if version_reads else None
 
         return ResourceRead(
             resource_id=res.resource_id,

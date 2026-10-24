@@ -23,17 +23,13 @@ from app.models.base import TimestampMixin
 class Subject(Base):
     __tablename__ = "subjects"
 
-    subject_id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
+    subject_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     department_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("departments.department_id", ondelete="CASCADE"),
         nullable=False,
     )
-    code: Mapped[str] = mapped_column(
-        String(30), unique=True, index=True, nullable=False
-    )
+    code: Mapped[str] = mapped_column(String(30), unique=True, index=True, nullable=False)
     name: Mapped[str] = mapped_column(String(150), nullable=False)
     semester: Mapped[int] = mapped_column(Integer, nullable=False)
 
@@ -44,9 +40,7 @@ class Subject(Base):
 class AcademicYear(Base):
     __tablename__ = "academic_years"
 
-    academic_year_id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
+    academic_year_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     label: Mapped[str] = mapped_column(String(30), unique=True, nullable=False)
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     end_date: Mapped[date] = mapped_column(Date, nullable=False)
@@ -85,12 +79,8 @@ class Resource(Base, TimestampMixin):
     )
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    visibility: Mapped[str] = mapped_column(
-        String(30), default="PRIVATE", nullable=False
-    )
-    status: Mapped[str] = mapped_column(
-        String(30), default="PENDING_VALIDATION", nullable=False
-    )
+    visibility: Mapped[str] = mapped_column(String(30), default="PRIVATE", nullable=False)
+    status: Mapped[str] = mapped_column(String(30), default="PENDING_VALIDATION", nullable=False)
 
     # Relationships
     owner = relationship("User", back_populates="resources")
@@ -112,9 +102,7 @@ class Resource(Base, TimestampMixin):
 class ResourceVersion(Base):
     __tablename__ = "resource_versions"
     __table_args__ = (
-        UniqueConstraint(
-            "resource_id", "version_number", name="uq_resource_version_number"
-        ),
+        UniqueConstraint("resource_id", "version_number", name="uq_resource_version_number"),
     )
 
     version_id: Mapped[uuid.UUID] = mapped_column(
@@ -152,13 +140,9 @@ class Tag(Base):
     __tablename__ = "tags"
 
     tag_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(
-        String(50), unique=True, index=True, nullable=False
-    )
+    name: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
 
-    resources = relationship(
-        "Resource", secondary="resource_tags", back_populates="tags"
-    )
+    resources = relationship("Resource", secondary="resource_tags", back_populates="tags")
 
 
 class ResourceTag(Base):

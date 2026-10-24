@@ -35,9 +35,7 @@ async def upload_resource_file(
     description: Annotated[str | None, Form(description="Resource description")] = None,
     folder_id: Annotated[uuid.UUID | None, Form(description="Target folder ID")] = None,
     subject_id: Annotated[int | None, Form(description="Associated subject ID")] = None,
-    academic_year_id: Annotated[
-        int | None, Form(description="Associated academic year ID")
-    ] = None,
+    academic_year_id: Annotated[int | None, Form(description="Associated academic year ID")] = None,
 ) -> ResourceRead:
     """
     Directly uploads file to Supabase storage in user's isolated folder (users/{user_id}/{folder}/...),
@@ -88,16 +86,28 @@ async def create_resource(
     "",
     response_model=list[ResourceRead],
     status_code=status.HTTP_200_OK,
-    summary="List accessible resources with optional filters",
+    summary="List accessible resources with pagination, search, sorting, and filters",
 )
 async def list_resources(
     current_user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_db_session)],
-    folder_id: Annotated[uuid.UUID | None, Query()] = None,
-    subject_id: Annotated[int | None, Query()] = None,
-    academic_year_id: Annotated[int | None, Query()] = None,
-    limit: Annotated[int, Query(ge=1, le=100)] = 50,
-    offset: Annotated[int, Query(ge=0)] = 0,
+    folder_id: Annotated[uuid.UUID | None, Query(description="Filter by folder ID")] = None,
+    subject_id: Annotated[int | None, Query(description="Filter by subject ID")] = None,
+    academic_year_id: Annotated[int | None, Query(description="Filter by academic year ID")] = None,
+    status: Annotated[
+        str | None, Query(description="Filter by status: DRAFT, APPROVED, PRIVATE, ARCHIVED")
+    ] = None,
+    visibility: Annotated[
+        str | None, Query(description="Filter by visibility: PRIVATE, DEPARTMENT, PUBLIC")
+    ] = None,
+    q: Annotated[str | None, Query(description="Search term in title or description")] = None,
+    page: Annotated[int | None, Query(ge=1, description="Page number")] = None,
+    limit: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 50,
+    offset: Annotated[int, Query(ge=0, description="Offset index")] = 0,
+    sort_by: Annotated[
+        str, Query(description="Sort by: created_at, title, status, visibility")
+    ] = "created_at",
+    order: Annotated[str, Query(description="Sort order: asc, desc")] = "desc",
 ) -> list[ResourceRead]:
     """Retrieves resources visible to current user (own resources, approved departmental, or public)."""
     resources = await ResourceService.list_resources(
@@ -106,8 +116,46 @@ async def list_resources(
         folder_id=folder_id,
         subject_id=subject_id,
         academic_year_id=academic_year_id,
+        status=status,
+        visibility=visibility,
+        q=q,
         limit=limit,
         offset=offset,
+        page=page,
+        sort_by=sort_by,
+        order=order,
+    )
+    return [ResourceService.serialize_resource(r) for r in resources]
+
+
+@router.get(
+    "/folder/{folder_id}",
+    response_model=list[ResourceRead],
+    status_code=status.HTTP_200_OK,
+    summary="List accessible resources within a specific folder",
+)
+async def list_resources_in_folder(
+    folder_id: uuid.UUID,
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    page: Annotated[int | None, Query(ge=1, description="Page number")] = None,
+    limit: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 50,
+    offset: Annotated[int, Query(ge=0, description="Offset index")] = 0,
+    sort_by: Annotated[
+        str, Query(description="Sort by: created_at, title, status, visibility")
+    ] = "created_at",
+    order: Annotated[str, Query(description="Sort order: asc, desc")] = "desc",
+) -> list[ResourceRead]:
+    """Convenience endpoint to query resources belonging to a folder ID directly."""
+    resources = await ResourceService.list_resources(
+        session=session,
+        user=current_user,
+        folder_id=folder_id,
+        limit=limit,
+        offset=offset,
+        page=page,
+        sort_by=sort_by,
+        order=order,
     )
     return [ResourceService.serialize_resource(r) for r in resources]
 
@@ -141,9 +189,7 @@ async def update_resource(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> ResourceRead:
     """Updates title, description, folder, subject, or visibility (Owner/Admin only)."""
-    res = await ResourceService.update_resource(
-        session, current_user, resource_id, payload
-    )
+    res = await ResourceService.update_resource(session, current_user, resource_id, payload)
     return ResourceService.serialize_resource(res)
 
 

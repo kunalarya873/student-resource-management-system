@@ -43,6 +43,9 @@ pythonpath = ["."]
 line-length = 100
 target-version = "py312"
 
+[tool.ruff.lint]
+ignore = ["UP046"]
+
 [tool.pyrefly]
 project-includes = [
     "**/*.py*",

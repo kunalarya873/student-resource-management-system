@@ -32,8 +32,6 @@ class Folder(Base, TimestampMixin):
 
     # Relationships
     owner = relationship("User", back_populates="folders")
-    parent_folder = relationship(
-        "Folder", remote_side=[folder_id], back_populates="subfolders"
-    )
+    parent_folder = relationship("Folder", remote_side=[folder_id], back_populates="subfolders")
     subfolders = relationship("Folder", back_populates="parent_folder")
     resources = relationship("Resource", back_populates="folder")

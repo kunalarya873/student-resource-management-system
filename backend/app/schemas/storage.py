@@ -23,9 +23,7 @@ class StorageQuotaResponse(CoreSchema):
 class UploadInitiateRequest(CoreSchema):
     """Payload to initiate a two-phase atomic upload reservation."""
 
-    filename: str = Field(
-        ..., min_length=1, max_length=255, description="Original filename"
-    )
+    filename: str = Field(..., min_length=1, max_length=255, description="Original filename")
     content_type: str = Field(
         default="application/octet-stream",
         max_length=100,
@@ -99,9 +97,7 @@ class UploadProgressUpdateRequest(CoreSchema):
     progress_percent: int = Field(
         ..., ge=0, le=100, description="Upload completion percentage (0-100)"
     )
-    bytes_uploaded: int | None = Field(
-        default=None, ge=0, description="Bytes transferred so far"
-    )
+    bytes_uploaded: int | None = Field(default=None, ge=0, description="Bytes transferred so far")
 
 
 class SupabaseWebhookResponse(CoreSchema):

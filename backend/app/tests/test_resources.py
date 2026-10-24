@@ -179,9 +179,7 @@ async def test_ec06_3_multi_versioning_and_retention(async_client: AsyncClient):
     assert v2_data["version_number"] == 2
 
     # 3. Fetch resource and verify both versions are retained
-    get_res = await async_client.get(
-        f"/api/v1/resources/{resource_id}", headers=headers
-    )
+    get_res = await async_client.get(f"/api/v1/resources/{resource_id}", headers=headers)
     assert get_res.status_code == 200
     updated_resource = get_res.json()
     assert len(updated_resource["versions"]) == 2
@@ -275,9 +273,7 @@ async def test_resource_crud_and_quota_cleanup_on_delete(
     assert used_before >= 4096
 
     # 4. Delete resource
-    del_res = await async_client.delete(
-        f"/api/v1/resources/{resource_id}", headers=headers
-    )
+    del_res = await async_client.delete(f"/api/v1/resources/{resource_id}", headers=headers)
     assert del_res.status_code == 200
     assert "deleted successfully" in del_res.json()["message"]
 
@@ -285,3 +281,100 @@ async def test_resource_crud_and_quota_cleanup_on_delete(
     quota_res_after = await async_client.get("/api/v1/storage/quota", headers=headers)
     used_after = quota_res_after.json()["used_bytes"]
     assert used_after == used_before - 4096
+
+
+@pytest.mark.asyncio
+async def test_resource_pagination_query_and_sorting(async_client: AsyncClient):
+    """Test pagination, search term q, and sorting on GET /api/v1/resources."""
+    token = await get_auth_token(async_client, "student@amu.edu")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Create distinct resources
+    for title in ["Discrete Math Module A", "Discrete Math Module B", "Linear Algebra"]:
+        await async_client.post(
+            "/api/v1/resources",
+            headers=headers,
+            json={
+                "title": title,
+                "description": f"Syllabus notes for {title}",
+                "external_url": "https://amu.ac.in/math.html",
+            },
+        )
+
+    # 1. Test search filter q="Discrete"
+    res_q = await async_client.get(
+        "/api/v1/resources",
+        headers=headers,
+        params={"q": "Discrete"},
+    )
+    assert res_q.status_code == 200
+    data_q = res_q.json()
+    assert len(data_q) >= 2
+    assert all("Discrete" in r["title"] for r in data_q)
+
+    # 2. Test pagination page=1, limit=1
+    res_page = await async_client.get(
+        "/api/v1/resources",
+        headers=headers,
+        params={"page": 1, "limit": 1},
+    )
+    assert res_page.status_code == 200
+    assert len(res_page.json()) == 1
+
+    # 3. Test sorting by title ascending
+    res_sort = await async_client.get(
+        "/api/v1/resources",
+        headers=headers,
+        params={"sort_by": "title", "order": "asc"},
+    )
+    assert res_sort.status_code == 200
+    titles = [r["title"] for r in res_sort.json()]
+    assert titles == sorted(titles)
+
+
+@pytest.mark.asyncio
+async def test_resource_folder_id_helpful_error_and_folder_endpoint(
+    async_client: AsyncClient,
+):
+    """Test calling /resources/{folder_id} returns an informative 404 and /resources/folder/{folder_id} succeeds."""
+    token = await get_auth_token(async_client, "student@amu.edu")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 1. Create a folder
+    f_res = await async_client.post(
+        "/api/v1/folders", headers=headers, json={"name": "DSA Algorithms"}
+    )
+    assert f_res.status_code == 201
+    folder_id = f_res.json()["folder_id"]
+
+    # 2. Add resource to this folder
+    res_obj = await async_client.post(
+        "/api/v1/resources",
+        headers=headers,
+        json={
+            "title": "Binary Trees CheatSheet",
+            "folder_id": folder_id,
+            "external_url": "https://amu.ac.in/cs/trees.html",
+        },
+    )
+    assert res_obj.status_code == 201
+
+    # 3. Attempt to fetch folder ID via /resources/{id} -> informative 404
+    err_res = await async_client.get(
+        f"/api/v1/resources/{folder_id}",
+        headers=headers,
+    )
+    assert err_res.status_code == 404
+    detail = err_res.json()["detail"]
+    assert "is a Folder ('DSA Algorithms')" in detail
+    assert "GET /api/v1/folders/" in detail
+
+    # 4. Fetch via dedicated /resources/folder/{folder_id} endpoint -> 200 OK
+    folder_res = await async_client.get(
+        f"/api/v1/resources/folder/{folder_id}",
+        headers=headers,
+    )
+    assert folder_res.status_code == 200
+    items = folder_res.json()
+    assert len(items) == 1
+    assert items[0]["title"] == "Binary Trees CheatSheet"

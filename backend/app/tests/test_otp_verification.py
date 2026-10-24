@@ -18,9 +18,7 @@ async def test_signup_generates_otp_and_sends_email(
     """Verify registration creates unverified user, generates 6-digit OTP, and dispatches email."""
     test_email = f"otp_student_{uuid.uuid4().hex[:8]}@amu.edu"
 
-    with patch.object(
-        EmailService, "send_verification_email", return_value=True
-    ) as mock_send:
+    with patch.object(EmailService, "send_verification_email", return_value=True) as mock_send:
         res = await async_client.post(
             "/api/v1/auth/signup",
             json={
@@ -44,9 +42,7 @@ async def test_signup_generates_otp_and_sends_email(
 
         # Verify EmailOTP record exists in database
         otp_record = await db_session.scalar(
-            select(EmailOTP).where(
-                EmailOTP.user_id == user.user_id, EmailOTP.is_used.is_(False)
-            )
+            select(EmailOTP).where(EmailOTP.user_id == user.user_id, EmailOTP.is_used.is_(False))
         )
         assert otp_record is not None
         assert otp_record.attempts == 0
@@ -67,9 +63,7 @@ async def test_verify_otp_success(async_client: AsyncClient, db_session: AsyncSe
     test_email = f"verify_{uuid.uuid4().hex[:8]}@amu.edu"
 
     # Step 1: Sign up
-    with patch.object(
-        EmailService, "send_verification_email", return_value=True
-    ) as mock_send:
+    with patch.object(EmailService, "send_verification_email", return_value=True) as mock_send:
         res = await async_client.post(
             "/api/v1/auth/signup",
             json={
@@ -98,17 +92,13 @@ async def test_verify_otp_success(async_client: AsyncClient, db_session: AsyncSe
     assert user.status == "ACTIVE"
 
     # Check OTP record is now used
-    otp_record = await db_session.scalar(
-        select(EmailOTP).where(EmailOTP.user_id == user.user_id)
-    )
+    otp_record = await db_session.scalar(select(EmailOTP).where(EmailOTP.user_id == user.user_id))
     assert otp_record is not None
     assert otp_record.is_used is True
 
 
 @pytest.mark.asyncio
-async def test_verify_otp_already_active_user(
-    async_client: AsyncClient, db_session: AsyncSession
-):
+async def test_verify_otp_already_active_user(async_client: AsyncClient, db_session: AsyncSession):
     """Verify submitting OTP for already active user returns informative success message."""
     test_email = "student@amu.edu"  # Seeded active user
 
@@ -206,9 +196,7 @@ async def test_verify_otp_expired(async_client: AsyncClient, db_session: AsyncSe
 
     # Manually expire the OTP in DB
     otp_record = await db_session.scalar(
-        select(EmailOTP).where(
-            EmailOTP.user_id == user.user_id, EmailOTP.is_used.is_(False)
-        )
+        select(EmailOTP).where(EmailOTP.user_id == user.user_id, EmailOTP.is_used.is_(False))
     )
     assert otp_record is not None
     otp_record.expires_at = datetime.now(UTC) - timedelta(minutes=5)
@@ -292,17 +280,13 @@ async def test_resend_otp_success_after_cooldown(
 
     # Simulate 65 seconds passed
     otp_record = await db_session.scalar(
-        select(EmailOTP).where(
-            EmailOTP.user_id == user.user_id, EmailOTP.is_used.is_(False)
-        )
+        select(EmailOTP).where(EmailOTP.user_id == user.user_id, EmailOTP.is_used.is_(False))
     )
     assert otp_record is not None
     otp_record.created_at = datetime.now(UTC) - timedelta(seconds=65)
     await db_session.commit()
 
-    with patch.object(
-        EmailService, "send_otp_email", return_value=True
-    ) as mock_otp_send:
+    with patch.object(EmailService, "send_otp_email", return_value=True) as mock_otp_send:
         res = await async_client.post(
             "/api/v1/auth/resend-otp",
             json={"email": test_email},

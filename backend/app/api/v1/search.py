@@ -28,12 +28,8 @@ async def search_resources(
         ),
     ] = None,
     subject_id: Annotated[int | None, Query(description="Filter by subject ID")] = None,
-    department_id: Annotated[
-        int | None, Query(description="Filter by department ID")
-    ] = None,
-    academic_year_id: Annotated[
-        int | None, Query(description="Filter by academic year ID")
-    ] = None,
+    department_id: Annotated[int | None, Query(description="Filter by department ID")] = None,
+    academic_year_id: Annotated[int | None, Query(description="Filter by academic year ID")] = None,
     page: Annotated[int, Query(ge=1, description="Page number")] = 1,
     limit: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 20,
 ) -> SearchResponse:

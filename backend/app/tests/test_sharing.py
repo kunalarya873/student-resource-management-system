@@ -102,9 +102,7 @@ async def test_ec07_3_immediate_revocation_effect(async_client: AsyncClient):
     resource_id = res["resource_id"]
 
     # 2. Verify Peer is initially blocked
-    peek_before = await async_client.get(
-        f"/api/v1/resources/{resource_id}", headers=headers_peer
-    )
+    peek_before = await async_client.get(f"/api/v1/resources/{resource_id}", headers=headers_peer)
     assert peek_before.status_code == 403
 
     # 3. Owner grants VIEW access to Peer
@@ -117,9 +115,7 @@ async def test_ec07_3_immediate_revocation_effect(async_client: AsyncClient):
     grant_id = grant_res.json()["access_id"]
 
     # 4. Peer can now view and download
-    peek_during = await async_client.get(
-        f"/api/v1/resources/{resource_id}", headers=headers_peer
-    )
+    peek_during = await async_client.get(f"/api/v1/resources/{resource_id}", headers=headers_peer)
     assert peek_during.status_code == 200
     assert peek_during.json()["title"] == "Confidential Research Draft"
 
@@ -136,9 +132,7 @@ async def test_ec07_3_immediate_revocation_effect(async_client: AsyncClient):
     assert revoke_res.status_code == 200
 
     # 6. Peer is immediately blocked again (EC-07.3)
-    peek_after = await async_client.get(
-        f"/api/v1/resources/{resource_id}", headers=headers_peer
-    )
+    peek_after = await async_client.get(f"/api/v1/resources/{resource_id}", headers=headers_peer)
     assert peek_after.status_code == 403
 
     dl_after = await async_client.get(
@@ -215,9 +209,7 @@ async def test_list_shared_with_me_and_list_grants(async_client: AsyncClient):
     assert "teacher@amu.edu" in grantee_emails
 
     # 3. Peer queries /resources/shared-with-me
-    shared_res = await async_client.get(
-        "/api/v1/resources/shared-with-me", headers=headers_peer
-    )
+    shared_res = await async_client.get("/api/v1/resources/shared-with-me", headers=headers_peer)
     assert shared_res.status_code == 200
     shared_items = shared_res.json()
     shared_ids = [item["resource_id"] for item in shared_items]

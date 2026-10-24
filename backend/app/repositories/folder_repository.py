@@ -103,5 +103,24 @@ class FolderRepository(BaseRepository[Folder]):
 
         return subfolders_count, resources_count
 
+    async def get_all_descendant_ids(
+        self,
+        session: AsyncSession,
+        folder_id: uuid.UUID,
+    ) -> list[uuid.UUID]:
+        """Fetch all descendant folder IDs (including target folder_id itself) via recursive CTE ordered bottom-up."""
+        query = text("""
+            WITH RECURSIVE tree AS (
+                SELECT folder_id, 1 as depth
+                FROM folders WHERE folder_id = :folder_id
+                UNION ALL
+                SELECT f.folder_id, t.depth + 1
+                FROM folders f JOIN tree t ON f.parent_folder_id = t.folder_id
+            )
+            SELECT folder_id FROM tree ORDER BY depth DESC;
+        """)
+        result = await session.execute(query, {"folder_id": str(folder_id)})
+        return [uuid.UUID(str(r[0])) for r in result.fetchall()]
+
 
 folder_repository = FolderRepository()

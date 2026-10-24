@@ -115,9 +115,7 @@ class SharingService:
             )
 
         # Check existing grant via sharing_repository (upsert behavior)
-        existing = await sharing_repository.get_active_grant(
-            session, resource_id, grantee.user_id
-        )
+        existing = await sharing_repository.get_active_grant(session, resource_id, grantee.user_id)
         if existing:
             existing.permission = clean_permission
             await session.commit()

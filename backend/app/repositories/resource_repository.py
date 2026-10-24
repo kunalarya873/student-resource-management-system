@@ -25,9 +25,7 @@ class ResourceRepository(BaseRepository[Resource]):
             select(Resource)
             .where(Resource.resource_id == resource_id)
             .options(
-                selectinload(Resource.versions).selectinload(
-                    ResourceVersion.storage_object
-                ),
+                selectinload(Resource.versions).selectinload(ResourceVersion.storage_object),
                 selectinload(Resource.owner),
             )
         )
@@ -93,12 +91,7 @@ class ResourceRepository(BaseRepository[Resource]):
         limit: int = 50,
     ) -> Sequence[Resource]:
         """List resources owned by a given user."""
-        stmt = (
-            select(Resource)
-            .where(Resource.owner_id == owner_id)
-            .offset(skip)
-            .limit(limit)
-        )
+        stmt = select(Resource).where(Resource.owner_id == owner_id).offset(skip).limit(limit)
         result = await session.scalars(stmt)
         return result.all()
 

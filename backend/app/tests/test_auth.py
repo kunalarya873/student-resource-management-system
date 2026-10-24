@@ -134,9 +134,7 @@ async def test_ec03_3_rbac_role_enforcement(async_client: AsyncClient):
     @app.get(
         "/api/v1/test/teacher-only",
         dependencies=[
-            pytest.importorskip("fastapi").Depends(
-                require_role(["Teacher", "Administrator"])
-            )
+            pytest.importorskip("fastapi").Depends(require_role(["Teacher", "Administrator"]))
         ],
     )
     async def teacher_only_endpoint():
@@ -172,9 +170,7 @@ async def test_ec03_3_rbac_role_enforcement(async_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_ec03_4_suspended_user_rejected(
-    async_client: AsyncClient, db_session: AsyncSession
-):
+async def test_ec03_4_suspended_user_rejected(async_client: AsyncClient, db_session: AsyncSession):
     """EC-03.4: Verify suspended user cannot login and their active tokens are rejected."""
     # Create suspended user
     suspended_user = User(

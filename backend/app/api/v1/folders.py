@@ -43,17 +43,27 @@ async def create_folder(
     "",
     response_model=list[FolderRead],
     status_code=status.HTTP_200_OK,
-    summary="List root folders or subfolders of a given parent",
+    summary="List root folders or subfolders of a given parent with search, pagination, and sorting",
 )
 async def list_folders(
     current_user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_db_session)],
     parent_id: Annotated[uuid.UUID | None, Query()] = None,
+    q: Annotated[str | None, Query(description="Search query to filter folders by name")] = None,
+    page: Annotated[int, Query(ge=1, description="Page number")] = 1,
+    limit: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 50,
+    sort_by: Annotated[str, Query(description="Sort by: name, created_at, updated_at")] = "name",
+    order: Annotated[str, Query(description="Sort order: asc, desc")] = "asc",
 ) -> list[FolderRead]:
     folders = await FolderService.list_folders(
         session=session,
         user=current_user,
         parent_id=parent_id,
+        q=q,
+        page=page,
+        limit=limit,
+        sort_by=sort_by,
+        order=order,
     )
     return [FolderRead.model_validate(f) for f in folders]
 
@@ -81,17 +91,29 @@ async def get_folder(
     "/{folder_id}/contents",
     response_model=FolderContentsResponse,
     status_code=status.HTTP_200_OK,
-    summary="Get folder contents including breadcrumbs, subfolders, and resources",
+    summary="Get folder contents including breadcrumbs, subfolders, and resources with pagination, search, and sorting",
 )
 async def get_folder_contents(
     folder_id: uuid.UUID,
     current_user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_db_session)],
+    q: Annotated[
+        str | None, Query(description="Filter subfolders and resources by search term")
+    ] = None,
+    page: Annotated[int, Query(ge=1, description="Page number")] = 1,
+    limit: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 50,
+    sort_by: Annotated[str, Query(description="Sort by: name, created_at, updated_at")] = "name",
+    order: Annotated[str, Query(description="Sort order: asc, desc")] = "asc",
 ) -> FolderContentsResponse:
     return await FolderService.get_folder_contents(
         session=session,
         user=current_user,
         folder_id=folder_id,
+        q=q,
+        page=page,
+        limit=limit,
+        sort_by=sort_by,
+        order=order,
     )
 
 
@@ -121,16 +143,23 @@ async def update_folder(
     "/{folder_id}",
     response_model=StandardMessageResponse,
     status_code=status.HTTP_200_OK,
-    summary="Delete an empty folder (enforces SD-09 non-empty protection)",
+    summary="Delete a folder (safely blocks non-empty folders unless recursive=true)",
 )
 async def delete_folder(
     folder_id: uuid.UUID,
     current_user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_db_session)],
+    recursive: Annotated[
+        bool,
+        Query(
+            description="If True, recursively deletes all nested subfolders, resources, and releases storage quota"
+        ),
+    ] = False,
 ) -> StandardMessageResponse:
     await FolderService.delete_folder(
         session=session,
         user=current_user,
         folder_id=folder_id,
+        recursive=recursive,
     )
     return StandardMessageResponse(message="Folder deleted successfully")

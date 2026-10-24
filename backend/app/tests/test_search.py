@@ -185,3 +185,60 @@ async def test_search_shared_resource_discovery(async_client: AsyncClient):
     data = teacher_search.json()
     teacher_titles = [item["title"] for item in data["results"]]
     assert shared_title in teacher_titles
+
+
+@pytest.mark.asyncio
+async def test_partial_text_search_prefix_and_wildcard(async_client: AsyncClient):
+    """
+    Test partial text search matching prefix tokens and wildcards.
+    Ensures searching 'pi' successfully matches 'pic.png' while maintaining zero-leakage security.
+    """
+    token_a = await get_auth_token(async_client, "student@amu.edu")
+    headers_a = {"Authorization": f"Bearer {token_a}"}
+
+    token_b = await get_auth_token(async_client, "teacher@amu.edu")
+    headers_b = {"Authorization": f"Bearer {token_b}"}
+
+    # 1. Student creates a resource named "pic.png"
+    unique_pic_title = "pic.png"
+    create_res = await async_client.post(
+        "/api/v1/resources",
+        headers=headers_a,
+        json={
+            "title": unique_pic_title,
+            "description": "Uploaded assignment screenshot diagram.",
+            "external_url": "https://amu.ac.in/uploads/pic.png",
+        },
+    )
+    assert create_res.status_code == 201
+
+    # 2. Student searches with partial prefix query q="pi"
+    search_res = await async_client.get(
+        "/api/v1/search",
+        headers=headers_a,
+        params={"q": "pi"},
+    )
+    assert search_res.status_code == 200
+    results = search_res.json()["results"]
+    matched_titles = [item["title"] for item in results]
+    assert unique_pic_title in matched_titles
+
+    # 3. Student searches with partial word in description q="assign"
+    desc_search = await async_client.get(
+        "/api/v1/search",
+        headers=headers_a,
+        params={"q": "assign"},
+    )
+    assert desc_search.status_code == 200
+    desc_titles = [item["title"] for item in desc_search.json()["results"]]
+    assert unique_pic_title in desc_titles
+
+    # 4. Teacher (unauthorized, resource is private) cannot find "pic.png" with q="pi"
+    teacher_res = await async_client.get(
+        "/api/v1/search",
+        headers=headers_b,
+        params={"q": "pi"},
+    )
+    assert teacher_res.status_code == 200
+    teacher_matched = [item["title"] for item in teacher_res.json()["results"]]
+    assert unique_pic_title not in teacher_matched

@@ -15,9 +15,7 @@ class Settings(BaseSettings):
 
     # Application
     APP_NAME: str = "AMU Student Resource Management System"
-    APP_ENV: str = Field(
-        default="development", description="development | staging | production"
-    )
+    APP_ENV: str = Field(default="development", description="development | staging | production")
     DEBUG: bool = True
     API_V1_PREFIX: str = "/api/v1"
 
@@ -89,9 +87,7 @@ class Settings(BaseSettings):
     OTP_RESEND_COOLDOWN_SECONDS: int = 60
     # Supabase Storage Configuration
     SUPABASE_URL: str = Field(default="", description="Supabase project URL")
-    SUPABASE_KEY: str = Field(
-        default="", repr=False, description="Supabase anon or service key"
-    )
+    SUPABASE_KEY: str = Field(default="", repr=False, description="Supabase anon or service key")
     SUPABASE_SERVICE_ROLE_KEY: str = Field(
         default="",
         repr=False,

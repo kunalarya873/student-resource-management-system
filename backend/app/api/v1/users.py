@@ -28,9 +28,7 @@ async def get_current_user_profile(
         role_id=current_user.role_id,
         role_name=current_user.role.name,
         department_id=current_user.department_id,
-        department_name=current_user.department.name
-        if current_user.department
-        else None,
+        department_name=current_user.department.name if current_user.department else None,
         status=current_user.status,
         created_at=current_user.created_at,
     )
@@ -61,9 +59,7 @@ async def update_current_user_profile(
         role_id=current_user.role_id,
         role_name=current_user.role.name,
         department_id=current_user.department_id,
-        department_name=current_user.department.name
-        if current_user.department
-        else None,
+        department_name=current_user.department.name if current_user.department else None,
         status=current_user.status,
         created_at=current_user.created_at,
     )
