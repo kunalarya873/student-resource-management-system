@@ -18,7 +18,9 @@ from app.schemas.folder import (
 
 class FolderService:
     @staticmethod
-    async def get_breadcrumbs(session: AsyncSession, folder_id: uuid.UUID) -> list[BreadcrumbItem]:
+    async def get_breadcrumbs(
+        session: AsyncSession, folder_id: uuid.UUID
+    ) -> list[BreadcrumbItem]:
         """Recursive CTE to construct the path breadcrumbs from root to current folder."""
         rows = await folder_repository.get_breadcrumbs_raw(session, folder_id)
         return [BreadcrumbItem(folder_id=r[0], name=r[1]) for r in rows]
@@ -28,7 +30,9 @@ class FolderService:
         session: AsyncSession, target_parent_id: uuid.UUID, folder_id: uuid.UUID
     ) -> bool:
         """Checks if target_parent_id is folder_id itself or any of its descendants (preventing DAG cycles)."""
-        return await folder_repository.is_descendant(session, target_parent_id, folder_id)
+        return await folder_repository.is_descendant(
+            session, target_parent_id, folder_id
+        )
 
     @classmethod
     async def create_folder(
@@ -77,7 +81,9 @@ class FolderService:
         return list(folders)
 
     @classmethod
-    async def get_folder(cls, session: AsyncSession, user: User, folder_id: uuid.UUID) -> Folder:
+    async def get_folder(
+        cls, session: AsyncSession, user: User, folder_id: uuid.UUID
+    ) -> Folder:
         folder = await folder_repository.get_by_id(session, folder_id)
         if not folder:
             raise HTTPException(
@@ -101,7 +107,9 @@ class FolderService:
 
         # Child subfolders
         subfolders_stmt = (
-            select(Folder).where(Folder.parent_folder_id == folder_id).order_by(Folder.name.asc())
+            select(Folder)
+            .where(Folder.parent_folder_id == folder_id)
+            .order_by(Folder.name.asc())
         )
         subfolders = (await session.scalars(subfolders_stmt)).all()
 
@@ -171,7 +179,9 @@ class FolderService:
         return folder
 
     @classmethod
-    async def delete_folder(cls, session: AsyncSession, user: User, folder_id: uuid.UUID):
+    async def delete_folder(
+        cls, session: AsyncSession, user: User, folder_id: uuid.UUID
+    ):
         folder = await folder_repository.get_by_id(session, folder_id)
         if not folder:
             raise HTTPException(
@@ -185,9 +195,10 @@ class FolderService:
             )
 
         # SD-09: Verify folder is empty before deleting
-        child_folders, child_resources = await folder_repository.count_children_and_resources(
-            session, folder_id
-        )
+        (
+            child_folders,
+            child_resources,
+        ) = await folder_repository.count_children_and_resources(session, folder_id)
 
         if child_folders > 0 or child_resources > 0:
             raise HTTPException(

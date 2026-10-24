@@ -46,7 +46,11 @@ class EmailService:
                 if settings.EMAIL_HOST_USER and clean_password:
                     server.login(settings.EMAIL_HOST_USER, clean_password)
                 server.sendmail(sender_email, [to_email], msg.as_string())
-            logger.info("Successfully dispatched email to %s with subject '%s'", to_email, subject)
+            logger.info(
+                "Successfully dispatched email to %s with subject '%s'",
+                to_email,
+                subject,
+            )
             return True
         except Exception as exc:  # noqa: BLE001
             # Redact password or internal sensitive details from logs
@@ -289,7 +293,9 @@ AMU Academic Technology Team
         return await cls.send_email_async(email, subject, html_content, text_content)
 
     @classmethod
-    async def send_password_reset_email(cls, email: str, full_name: str, token: str) -> bool:
+    async def send_password_reset_email(
+        cls, email: str, full_name: str, token: str
+    ) -> bool:
         """Send password reset link with time-bounded expiration."""
         reset_link = f"{settings.FRONTEND_URL}/reset-password?token={token}"
 
@@ -376,7 +382,9 @@ AMU Academic Technology Team
     @classmethod
     async def send_password_reset_confirmation(cls, email: str, full_name: str) -> bool:
         """Send notification confirming password change."""
-        subject = "Your Password Has Been Changed - AMU Student Resource Management System"
+        subject = (
+            "Your Password Has Been Changed - AMU Student Resource Management System"
+        )
 
         text_content = f"""Hello {full_name},
 

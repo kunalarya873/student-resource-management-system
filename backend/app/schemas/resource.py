@@ -31,11 +31,17 @@ class ResourceCreate(ResourceBase):
     @model_validator(mode="after")
     def validate_one_source(self) -> "ResourceCreate":
         has_file = self.reservation_id is not None
-        has_link = self.external_url is not None and len(str(self.external_url).strip()) > 0
+        has_link = (
+            self.external_url is not None and len(str(self.external_url).strip()) > 0
+        )
         if not has_file and not has_link:
-            raise ValueError("Must provide either a completed reservation_id or an external_url.")
+            raise ValueError(
+                "Must provide either a completed reservation_id or an external_url."
+            )
         if has_file and has_link:
-            raise ValueError("Cannot provide both reservation_id and external_url simultaneously.")
+            raise ValueError(
+                "Cannot provide both reservation_id and external_url simultaneously."
+            )
         return self
 
 
@@ -47,7 +53,9 @@ class ResourceUpdate(CoreSchema):
     folder_id: uuid.UUID | None = None
     subject_id: int | None = None
     academic_year_id: int | None = None
-    visibility: str | None = Field(default=None, description="PRIVATE | DEPARTMENT | PUBLIC")
+    visibility: str | None = Field(
+        default=None, description="PRIVATE | DEPARTMENT | PUBLIC"
+    )
 
 
 class ResourceVersionCreate(CoreSchema):
@@ -59,11 +67,15 @@ class ResourceVersionCreate(CoreSchema):
     @model_validator(mode="after")
     def validate_one_source(self) -> "ResourceVersionCreate":
         has_file = self.reservation_id is not None
-        has_link = self.external_url is not None and len(str(self.external_url).strip()) > 0
+        has_link = (
+            self.external_url is not None and len(str(self.external_url).strip()) > 0
+        )
         if not has_file and not has_link:
             raise ValueError("Must provide either a reservation_id or an external_url.")
         if has_file and has_link:
-            raise ValueError("Cannot provide both reservation_id and external_url simultaneously.")
+            raise ValueError(
+                "Cannot provide both reservation_id and external_url simultaneously."
+            )
         return self
 
 

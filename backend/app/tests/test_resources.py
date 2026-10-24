@@ -48,7 +48,9 @@ async def create_completed_upload(
 
 
 @pytest.mark.asyncio
-async def test_ec06_1_student_upload_privacy_vs_teacher_auto_approval(async_client: AsyncClient):
+async def test_ec06_1_student_upload_privacy_vs_teacher_auto_approval(
+    async_client: AsyncClient,
+):
     """
     EC-06.1: Student upload yields status=PRIVATE and visibility=PRIVATE (invisible to others).
     Teacher upload yields status=APPROVED and visibility=DEPARTMENT.
@@ -141,7 +143,10 @@ async def test_ec06_3_multi_versioning_and_retention(async_client: AsyncClient):
 
     # 1. Create file-backed resource with Version 1
     res1_id = await create_completed_upload(
-        async_client, token, filename="lecture_v1.pdf", content=b"Version 1 Payload Content"
+        async_client,
+        token,
+        filename="lecture_v1.pdf",
+        content=b"Version 1 Payload Content",
     )
     create_res = await async_client.post(
         "/api/v1/resources",
@@ -159,7 +164,10 @@ async def test_ec06_3_multi_versioning_and_retention(async_client: AsyncClient):
 
     # 2. Upload file for Version 2 and attach
     res2_id = await create_completed_upload(
-        async_client, token, filename="lecture_v2.pdf", content=b"Version 2 Revised Payload Content"
+        async_client,
+        token,
+        filename="lecture_v2.pdf",
+        content=b"Version 2 Revised Payload Content",
     )
     v2_res = await async_client.post(
         f"/api/v1/resources/{resource_id}/versions",
@@ -171,7 +179,9 @@ async def test_ec06_3_multi_versioning_and_retention(async_client: AsyncClient):
     assert v2_data["version_number"] == 2
 
     # 3. Fetch resource and verify both versions are retained
-    get_res = await async_client.get(f"/api/v1/resources/{resource_id}", headers=headers)
+    get_res = await async_client.get(
+        f"/api/v1/resources/{resource_id}", headers=headers
+    )
     assert get_res.status_code == 200
     updated_resource = get_res.json()
     assert len(updated_resource["versions"]) == 2
@@ -265,7 +275,9 @@ async def test_resource_crud_and_quota_cleanup_on_delete(
     assert used_before >= 4096
 
     # 4. Delete resource
-    del_res = await async_client.delete(f"/api/v1/resources/{resource_id}", headers=headers)
+    del_res = await async_client.delete(
+        f"/api/v1/resources/{resource_id}", headers=headers
+    )
     assert del_res.status_code == 200
     assert "deleted successfully" in del_res.json()["message"]
 

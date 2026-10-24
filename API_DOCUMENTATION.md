@@ -474,7 +474,7 @@ Receives automated notifications when objects land in Supabase Storage (`storage
   "schema": "storage",
   "record": {
     "name": "users/3eff0bce-3e26-496b-9d16-81aeb2c9eed7/assignments/research_paper.pdf",
-    "bucket_id": "files",
+    "bucket_id": "resources",
     "metadata": {
       "size": 1048576,
       "mimetype": "application/pdf",

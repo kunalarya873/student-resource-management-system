@@ -9,8 +9,12 @@ from app.schemas.common import CoreSchema
 class ShareGrantCreate(CoreSchema):
     """Payload to grant a user access to a resource."""
 
-    grantee_email: EmailStr = Field(..., description="Target user's university email address")
-    permission: str = Field(default="VIEW", description="Access permission: VIEW or EDIT")
+    grantee_email: EmailStr = Field(
+        ..., description="Target user's university email address"
+    )
+    permission: str = Field(
+        default="VIEW", description="Access permission: VIEW or EDIT"
+    )
 
 
 class ShareGrantUpdate(CoreSchema):

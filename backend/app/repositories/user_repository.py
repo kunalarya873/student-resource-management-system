@@ -39,12 +39,16 @@ class UserRepository(BaseRepository[User]):
         )
         return await session.scalar(stmt)
 
-    async def get_role_by_name(self, session: AsyncSession, role_name: str) -> Role | None:
+    async def get_role_by_name(
+        self, session: AsyncSession, role_name: str
+    ) -> Role | None:
         """Fetch a system role by unique name."""
         stmt = select(Role).where(Role.name == role_name)
         return await session.scalar(stmt)
 
-    async def get_department_by_code(self, session: AsyncSession, code: str) -> Department | None:
+    async def get_department_by_code(
+        self, session: AsyncSession, code: str
+    ) -> Department | None:
         """Lookup department by code."""
         stmt = select(Department).where(Department.code == code)
         return await session.scalar(stmt)

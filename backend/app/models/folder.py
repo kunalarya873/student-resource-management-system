@@ -19,15 +19,21 @@ class Folder(Base, TimestampMixin):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     owner_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False
+        UUID(as_uuid=True),
+        ForeignKey("users.user_id", ondelete="CASCADE"),
+        nullable=False,
     )
     parent_folder_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("folders.folder_id", ondelete="RESTRICT"), nullable=True
+        UUID(as_uuid=True),
+        ForeignKey("folders.folder_id", ondelete="RESTRICT"),
+        nullable=True,
     )
     name: Mapped[str] = mapped_column(String(150), nullable=False)
 
     # Relationships
     owner = relationship("User", back_populates="folders")
-    parent_folder = relationship("Folder", remote_side=[folder_id], back_populates="subfolders")
+    parent_folder = relationship(
+        "Folder", remote_side=[folder_id], back_populates="subfolders"
+    )
     subfolders = relationship("Folder", back_populates="parent_folder")
     resources = relationship("Resource", back_populates="folder")

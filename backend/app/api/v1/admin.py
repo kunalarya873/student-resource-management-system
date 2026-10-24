@@ -39,10 +39,14 @@ async def get_storage_report(
     Strictly protected by Administrator RBAC (Rule 02).
     """
     total_quota = (
-        await session.scalar(select(func.coalesce(func.sum(StorageQuota.quota_bytes), 0)))
+        await session.scalar(
+            select(func.coalesce(func.sum(StorageQuota.quota_bytes), 0))
+        )
     ) or 0
     total_used = (
-        await session.scalar(select(func.coalesce(func.sum(StorageQuota.used_bytes), 0)))
+        await session.scalar(
+            select(func.coalesce(func.sum(StorageQuota.used_bytes), 0))
+        )
     ) or 0
 
     pct = round((total_used / total_quota * 100), 2) if total_quota > 0 else 0.0
@@ -52,8 +56,12 @@ async def get_storage_report(
             Department.department_id,
             Department.name.label("department_name"),
             func.count(User.user_id).label("total_users"),
-            func.coalesce(func.sum(StorageQuota.quota_bytes), 0).label("total_quota_bytes"),
-            func.coalesce(func.sum(StorageQuota.used_bytes), 0).label("total_used_bytes"),
+            func.coalesce(func.sum(StorageQuota.quota_bytes), 0).label(
+                "total_quota_bytes"
+            ),
+            func.coalesce(func.sum(StorageQuota.used_bytes), 0).label(
+                "total_used_bytes"
+            ),
         )
         .join(User, Department.department_id == User.department_id, isouter=True)
         .join(StorageQuota, User.user_id == StorageQuota.user_id, isouter=True)
@@ -158,7 +166,9 @@ async def list_audit_logs(
     admin: AdminUser,
     session: Annotated[AsyncSession, Depends(get_db_session)],
     action: Annotated[str | None, Query(description="Filter by action name")] = None,
-    entity_type: Annotated[str | None, Query(description="Filter by entity type")] = None,
+    entity_type: Annotated[
+        str | None, Query(description="Filter by entity type")
+    ] = None,
     limit: Annotated[int, Query(ge=1, le=200, description="Page limit")] = 50,
     offset: Annotated[int, Query(ge=0, description="Page offset")] = 0,
 ) -> list[AuditEventRead]:

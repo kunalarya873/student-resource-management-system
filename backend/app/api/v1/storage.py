@@ -42,7 +42,9 @@ async def get_object_download_url(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> DownloadUrlResponse:
     """Returns a short-lived presigned URL with Content-Disposition headers for downloading."""
-    storage_obj = await storage_repository.get_storage_object_by_id(session, storage_object_id)
+    storage_obj = await storage_repository.get_storage_object_by_id(
+        session, storage_object_id
+    )
     if not storage_obj:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -91,4 +93,6 @@ async def cleanup_expired_reservations(
 ) -> StandardMessageResponse:
     """Sweeps abandoned upload reservations older than 30 minutes (EC-05.4)."""
     count = await QuotaService.cleanup_expired_reservations(session)
-    return StandardMessageResponse(message=f"Cleaned up {count} expired upload reservations.")
+    return StandardMessageResponse(
+        message=f"Cleaned up {count} expired upload reservations."
+    )

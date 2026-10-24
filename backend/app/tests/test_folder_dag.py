@@ -15,7 +15,9 @@ async def test_create_root_and_nested_subfolders(async_client: AsyncClient):
     headers = {"Authorization": f"Bearer {token}"}
 
     # 1. Create root folder
-    res1 = await async_client.post("/api/v1/folders", headers=headers, json={"name": "Root Folder"})
+    res1 = await async_client.post(
+        "/api/v1/folders", headers=headers, json={"name": "Root Folder"}
+    )
     assert res1.status_code == 201
     root = res1.json()
     assert root["parent_folder_id"] is None
@@ -39,7 +41,9 @@ async def test_breadcrumbs_recursive_cte(async_client: AsyncClient):
 
     # Hierarchy: A -> B -> C
     f_a = (
-        await async_client.post("/api/v1/folders", headers=headers, json={"name": "Dept CS"})
+        await async_client.post(
+            "/api/v1/folders", headers=headers, json={"name": "Dept CS"}
+        )
     ).json()
     f_b = (
         await async_client.post(
@@ -75,7 +79,9 @@ async def test_ec04_1_self_parenting_rejected(async_client: AsyncClient):
     headers = {"Authorization": f"Bearer {token}"}
 
     folder = (
-        await async_client.post("/api/v1/folders", headers=headers, json={"name": "Self Loop Test"})
+        await async_client.post(
+            "/api/v1/folders", headers=headers, json={"name": "Self Loop Test"}
+        )
     ).json()
 
     res = await async_client.patch(
@@ -95,7 +101,9 @@ async def test_ec04_2_deep_tree_cycle_rejected(async_client: AsyncClient):
 
     # A -> B -> C
     f_a = (
-        await async_client.post("/api/v1/folders", headers=headers, json={"name": "Grandparent A"})
+        await async_client.post(
+            "/api/v1/folders", headers=headers, json={"name": "Grandparent A"}
+        )
     ).json()
     f_b = (
         await async_client.post(
@@ -132,7 +140,9 @@ async def test_ec04_3_non_empty_deletion_rejected(
 
     # Case 1: Folder containing subfolder
     parent = (
-        await async_client.post("/api/v1/folders", headers=headers, json={"name": "Parent Folder"})
+        await async_client.post(
+            "/api/v1/folders", headers=headers, json={"name": "Parent Folder"}
+        )
     ).json()
     await async_client.post(
         "/api/v1/folders",
@@ -140,7 +150,9 @@ async def test_ec04_3_non_empty_deletion_rejected(
         json={"name": "Sub Child", "parent_folder_id": parent["folder_id"]},
     )
 
-    del_res = await async_client.delete(f"/api/v1/folders/{parent['folder_id']}", headers=headers)
+    del_res = await async_client.delete(
+        f"/api/v1/folders/{parent['folder_id']}", headers=headers
+    )
     assert del_res.status_code == 409
     assert "not empty" in del_res.json()["detail"]
 
@@ -152,7 +164,9 @@ async def test_ec04_3_non_empty_deletion_rejected(
     ).json()
 
     # Query student user
-    student = await db_session.scalar(select(User).where(User.email == "student@amu.edu"))
+    student = await db_session.scalar(
+        select(User).where(User.email == "student@amu.edu")
+    )
     assert student is not None
     res_obj = Resource(
         owner_id=student.user_id,
@@ -221,7 +235,9 @@ async def test_delete_empty_folder_success(async_client: AsyncClient):
         )
     ).json()
 
-    del_res = await async_client.delete(f"/api/v1/folders/{folder['folder_id']}", headers=headers)
+    del_res = await async_client.delete(
+        f"/api/v1/folders/{folder['folder_id']}", headers=headers
+    )
     assert del_res.status_code == 200
     assert "deleted successfully" in del_res.json()["message"]
 

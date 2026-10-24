@@ -128,7 +128,9 @@ async def reset_password(
     payload: ResetPasswordRequest,
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> StandardMessageResponse:
-    return await AuthService.reset_password(session, payload.token, payload.new_password)
+    return await AuthService.reset_password(
+        session, payload.token, payload.new_password
+    )
 
 
 @router.post(
@@ -196,7 +198,9 @@ async def get_my_profile(
         full_name=current_user.full_name,
         role_name=current_user.role.name,
         department_id=current_user.department_id,
-        department_name=current_user.department.name if current_user.department else None,
+        department_name=current_user.department.name
+        if current_user.department
+        else None,
         status=current_user.status,
         quota=quota_summary,
     )

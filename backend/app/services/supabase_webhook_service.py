@@ -28,7 +28,9 @@ class SupabaseWebhookService:
         """
         configured_secret = settings.SUPABASE_WEBHOOK_SECRET
         if not configured_secret:
-            logger.warning("SUPABASE_WEBHOOK_SECRET is not configured; rejecting webhook request.")
+            logger.warning(
+                "SUPABASE_WEBHOOK_SECRET is not configured; rejecting webhook request."
+            )
             return False
 
         if not secret_header:
@@ -60,7 +62,11 @@ class SupabaseWebhookService:
 
         # 1. Parse payload structure (handles database triggers or storage event payloads)
         event_type = payload.get("type") or payload.get("event") or "INSERT"
-        record = payload.get("record") if isinstance(payload.get("record"), dict) else payload
+        record = (
+            payload.get("record")
+            if isinstance(payload.get("record"), dict)
+            else payload
+        )
 
         object_key = (
             record.get("name")
@@ -138,11 +144,15 @@ class SupabaseWebhookService:
             )
             quota = await session.scalar(quota_stmt)
             if quota:
-                quota.reserved_bytes = max(0, quota.reserved_bytes - reservation.reserved_bytes)
+                quota.reserved_bytes = max(
+                    0, quota.reserved_bytes - reservation.reserved_bytes
+                )
                 quota.used_bytes += actual_bytes
 
             # Register StorageObject
-            storage_stmt = select(StorageObject).where(StorageObject.object_key == object_key)
+            storage_stmt = select(StorageObject).where(
+                StorageObject.object_key == object_key
+            )
             storage_obj = await session.scalar(storage_stmt)
             if not storage_obj:
                 storage_obj = StorageObject(
@@ -202,7 +212,9 @@ class SupabaseWebhookService:
             if user_uuid:
                 user = await session.get(User, user_uuid)
                 if user:
-                    quota = await QuotaService.get_or_create_quota(session, user, for_update=True)
+                    quota = await QuotaService.get_or_create_quota(
+                        session, user, for_update=True
+                    )
                     quota.used_bytes += byte_size
 
                     storage_stmt = select(StorageObject).where(

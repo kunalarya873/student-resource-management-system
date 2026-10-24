@@ -21,12 +21,13 @@ load_dotenv(BASE_DIR / ".env")
 SUPABASE_URL = os.getenv(
     "SUPABASE_URL", "https://ijlfghksvuyoynshxoif.storage.supabase.co"
 )
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
-SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "files")
+# Prefer service_role key for backend CLI uploads (bypasses RLS), fallback to anon key
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY", "")
+SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "resources")
 
 if not SUPABASE_KEY:
     print(
-        "Warning: SUPABASE_KEY not found in .env file. Please check your environment configuration."
+        "Warning: Neither SUPABASE_SERVICE_ROLE_KEY nor SUPABASE_KEY found in environment or .env."
     )
 
 
@@ -46,17 +47,21 @@ def upload_resource(
     Upload a file into a user-specific folder with privacy controls.
     Storage Path structure: users/{user_id}/{folder_name}/{filename}
     """
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(f"File not found: {file_path}")
+    resolved_path = Path(file_path)
+    if not resolved_path.exists():
+        if (BASE_DIR / file_path).exists():
+            resolved_path = BASE_DIR / file_path
+        else:
+            raise FileNotFoundError(f"File not found: {file_path}")
 
     # Generate or validate user_id for folder segregation
     clean_user_id = user_id or str(uuid.uuid4())
-    filename = os.path.basename(file_path)
+    filename = resolved_path.name
 
     # Hierarchical user-isolated storage path
     storage_path = f"users/{clean_user_id}/{folder_name}/{filename}"
 
-    with open(file_path, "rb") as f:
+    with open(resolved_path, "rb") as f:
         file_data = f.read()
 
     client = get_supabase_client()
@@ -81,7 +86,7 @@ def upload_resource(
                 "To enable uploads via anon key, add an INSERT policy on the 'files' bucket in Supabase:"
             )
             print(
-                "  CREATE POLICY \"Allow uploads\" ON storage.objects FOR INSERT TO anon WITH CHECK (bucket_id = 'files');"
+                "  CREATE POLICY \"Allow uploads\" ON storage.objects FOR INSERT TO anon WITH CHECK (bucket_id = 'resources');"
             )
             print("Or use the SUPABASE_SERVICE_ROLE_KEY in .env.")
         raise exc

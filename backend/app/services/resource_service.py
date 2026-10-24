@@ -98,7 +98,10 @@ class ResourceService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Upload reservation must be completed before attaching to a resource.",
                 )
-            if reservation.user_id != user.user_id and user.role.name != "Administrator":
+            if (
+                reservation.user_id != user.user_id
+                and user.role.name != "Administrator"
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="You do not own this upload reservation.",
@@ -117,7 +120,9 @@ class ResourceService:
             await session.flush()
 
             # Link storage object to this version
-            stmt = select(StorageObject).where(StorageObject.object_key == reservation.object_key)
+            stmt = select(StorageObject).where(
+                StorageObject.object_key == reservation.object_key
+            )
             storage_obj = await session.scalar(stmt)
             if storage_obj:
                 storage_obj.version_id = version.version_id
@@ -287,7 +292,10 @@ class ResourceService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Upload reservation must be completed before attaching as a version.",
                 )
-            if reservation.user_id != user.user_id and user.role.name != "Administrator":
+            if (
+                reservation.user_id != user.user_id
+                and user.role.name != "Administrator"
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="You do not own this upload reservation.",
@@ -305,7 +313,9 @@ class ResourceService:
             session.add(new_version)
             await session.flush()
 
-            stmt = select(StorageObject).where(StorageObject.object_key == reservation.object_key)
+            stmt = select(StorageObject).where(
+                StorageObject.object_key == reservation.object_key
+            )
             storage_obj = await session.scalar(stmt)
             if storage_obj:
                 storage_obj.version_id = new_version.version_id
@@ -327,7 +337,9 @@ class ResourceService:
         resource_id: uuid.UUID,
     ) -> Resource:
         """Retrieve resource details and enforce authorization guards (EC-06.1, EC-06.4)."""
-        resource = await resource_repository.get_by_id_with_details(session, resource_id)
+        resource = await resource_repository.get_by_id_with_details(
+            session, resource_id
+        )
         if not resource:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -343,7 +355,9 @@ class ResourceService:
         cls, session: AsyncSession, resource: Resource, user: User
     ) -> None:
         """Enforce access rules: Owner & Admin have full access; explicit share grant or approved visibility."""
-        if (user.role and user.role.name == "Administrator") or resource.owner_id == user.user_id:
+        if (
+            user.role and user.role.name == "Administrator"
+        ) or resource.owner_id == user.user_id:
             return
 
         # Check explicit sharing grant via sharing_repository (Phase 7)
@@ -479,7 +493,9 @@ class ResourceService:
                 total_file_bytes += v.size_bytes
 
         if total_file_bytes > 0:
-            await QuotaService.release_quota(session, resource.owner_id, total_file_bytes)
+            await QuotaService.release_quota(
+                session, resource.owner_id, total_file_bytes
+            )
 
         await session.delete(resource)
         await session.commit()
@@ -529,7 +545,9 @@ class ResourceService:
             )
 
         # File-backed: fetch StorageObject
-        stmt = select(StorageObject).where(StorageObject.version_id == target_version.version_id)
+        stmt = select(StorageObject).where(
+            StorageObject.version_id == target_version.version_id
+        )
         storage_obj = await session.scalar(stmt)
         if not storage_obj:
             raise HTTPException(
@@ -578,7 +596,11 @@ class ResourceService:
             )
             for v in res.versions
         ]
-        current_v = max(version_reads, key=lambda v: v.version_number) if version_reads else None
+        current_v = (
+            max(version_reads, key=lambda v: v.version_number)
+            if version_reads
+            else None
+        )
 
         return ResourceRead(
             resource_id=res.resource_id,

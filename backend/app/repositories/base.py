@@ -1,14 +1,16 @@
 import uuid
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, Generic, TypeVar
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import Base
 
+ModelType = TypeVar("ModelType", bound=Base)
 
-class BaseRepository[ModelType: Base]:
+
+class BaseRepository(Generic[ModelType]):
     """
     Generic Abstract Repository Pattern implementation for SQLAlchemy 2.0.
     Provides standard async CRUD operations and query building.

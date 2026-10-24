@@ -14,7 +14,9 @@ async def test_ec09_1_teacher_cannot_access_admin_routes(async_client: AsyncClie
     token_teacher = await get_auth_token(async_client, "teacher@amu.edu")
     headers_teacher = {"Authorization": f"Bearer {token_teacher}"}
 
-    res = await async_client.get("/api/v1/admin/reports/storage", headers=headers_teacher)
+    res = await async_client.get(
+        "/api/v1/admin/reports/storage", headers=headers_teacher
+    )
     assert res.status_code == 403
     assert "administrator" in res.json()["detail"].lower()
 
@@ -90,7 +92,9 @@ async def test_ec09_3_quota_reduction_below_used_rejected(async_client: AsyncCli
     token_student = await get_auth_token(async_client, "student@amu.edu")
     headers_student = {"Authorization": f"Bearer {token_student}"}
 
-    student_profile = (await async_client.get("/api/v1/users/me", headers=headers_student)).json()
+    student_profile = (
+        await async_client.get("/api/v1/users/me", headers=headers_student)
+    ).json()
     student_id = student_profile["user_id"]
 
     # 1. Student reserves 50 MB

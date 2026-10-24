@@ -76,7 +76,9 @@ class SupabaseStorageService:
         byte_size = len(file_data)
 
         try:
-            await asyncio.to_thread(cls._upload_sync, object_key, file_data, content_type)
+            await asyncio.to_thread(
+                cls._upload_sync, object_key, file_data, content_type
+            )
             logger.info("Uploaded %d bytes to Supabase at %s", byte_size, object_key)
         except Exception as exc:
             logger.error("Supabase upload failed for %s: %s", object_key, exc)
@@ -117,7 +119,9 @@ class SupabaseStorageService:
             return str(res)
         except Exception as exc:  # noqa: BLE001
             logger.warning(
-                "Could not generate signed URL for %s, falling back: %s", object_key, exc
+                "Could not generate signed URL for %s, falling back: %s",
+                object_key,
+                exc,
             )
             # Fallback to public URL if bucket is configured as public
             return client.storage.from_(bucket).get_public_url(object_key)
@@ -129,7 +133,9 @@ class SupabaseStorageService:
         expires_in: int = 900,
     ) -> str:
         """Asynchronously generate a signed download URL valid for `expires_in` seconds (default 15m)."""
-        return await asyncio.to_thread(cls._create_signed_url_sync, storage_path, expires_in)
+        return await asyncio.to_thread(
+            cls._create_signed_url_sync, storage_path, expires_in
+        )
 
     @classmethod
     def _delete_sync(cls, storage_path: str) -> bool:
@@ -139,7 +145,9 @@ class SupabaseStorageService:
             client.storage.from_(bucket).remove([storage_path])
             return True
         except Exception as exc:  # noqa: BLE001
-            logger.warning("Failed to remove file from Supabase at %s: %s", storage_path, exc)
+            logger.warning(
+                "Failed to remove file from Supabase at %s: %s", storage_path, exc
+            )
             return False
 
     @classmethod

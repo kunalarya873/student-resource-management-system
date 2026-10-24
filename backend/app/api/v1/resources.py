@@ -35,7 +35,9 @@ async def upload_resource_file(
     description: Annotated[str | None, Form(description="Resource description")] = None,
     folder_id: Annotated[uuid.UUID | None, Form(description="Target folder ID")] = None,
     subject_id: Annotated[int | None, Form(description="Associated subject ID")] = None,
-    academic_year_id: Annotated[int | None, Form(description="Associated academic year ID")] = None,
+    academic_year_id: Annotated[
+        int | None, Form(description="Associated academic year ID")
+    ] = None,
 ) -> ResourceRead:
     """
     Directly uploads file to Supabase storage in user's isolated folder (users/{user_id}/{folder}/...),
@@ -139,7 +141,9 @@ async def update_resource(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> ResourceRead:
     """Updates title, description, folder, subject, or visibility (Owner/Admin only)."""
-    res = await ResourceService.update_resource(session, current_user, resource_id, payload)
+    res = await ResourceService.update_resource(
+        session, current_user, resource_id, payload
+    )
     return ResourceService.serialize_resource(res)
 
 

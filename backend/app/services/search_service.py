@@ -37,7 +37,7 @@ class SearchService:
         is_admin = bool(user.role and user.role.name == "Administrator")
 
         sql = """
-            SELECT 
+            SELECT
                 r.resource_id,
                 r.title,
                 r.description,
@@ -46,7 +46,7 @@ class SearchService:
                 u.full_name as owner_name,
                 r.visibility,
                 r.status,
-                CASE 
+                CASE
                     WHEN CAST(:q_is_null AS BOOLEAN) = FALSE THEN ts_rank(to_tsvector('english', r.title || ' ' || coalesce(r.description, '')), plainto_tsquery('english', CAST(:q AS TEXT)))
                     ELSE 0.0
                 END as rank,
@@ -55,9 +55,9 @@ class SearchService:
             FROM resources r
             LEFT JOIN subjects s ON r.subject_id = s.subject_id
             JOIN users u ON r.owner_id = u.user_id
-            WHERE 
+            WHERE
                 (
-                    CAST(:q_is_null AS BOOLEAN) = TRUE OR 
+                    CAST(:q_is_null AS BOOLEAN) = TRUE OR
                     to_tsvector('english', r.title || ' ' || coalesce(r.description, '')) @@ plainto_tsquery('english', CAST(:q AS TEXT))
                 )
                 AND (CAST(:subject_id AS INTEGER) IS NULL OR r.subject_id = CAST(:subject_id AS INTEGER))
@@ -71,9 +71,9 @@ class SearchService:
                     OR CAST(:is_admin AS BOOLEAN) = TRUE
                     -- 3. Approved institutional content: PUBLIC or within caller's department
                     OR (
-                        r.status = 'APPROVED' 
+                        r.status = 'APPROVED'
                         AND (
-                            r.visibility = 'PUBLIC' 
+                            r.visibility = 'PUBLIC'
                             OR (r.visibility = 'DEPARTMENT' AND (s.department_id = CAST(:user_dept_id AS INTEGER) OR u.department_id = CAST(:user_dept_id AS INTEGER)))
                         )
                     )

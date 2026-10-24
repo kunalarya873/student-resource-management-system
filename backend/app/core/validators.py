@@ -40,7 +40,13 @@ async def validate_safe_url(url_str: str) -> str:
 
     # Disallow known local/internal aliases directly
     lower_host = hostname.lower()
-    if lower_host in ("localhost", "127.0.0.1", "0.0.0.0", "::1", "metadata.google.internal"):
+    if lower_host in (
+        "localhost",
+        "127.0.0.1",
+        "0.0.0.0",
+        "::1",
+        "metadata.google.internal",
+    ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="External links pointing to internal or private IP addresses are strictly forbidden.",

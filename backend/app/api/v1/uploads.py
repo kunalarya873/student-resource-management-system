@@ -102,7 +102,9 @@ async def cancel_upload(
         user=current_user,
         reservation_id=reservation_id,
     )
-    return StandardMessageResponse(message="Upload reservation cancelled and quota released.")
+    return StandardMessageResponse(
+        message="Upload reservation cancelled and quota released."
+    )
 
 
 @router.get(
@@ -170,16 +172,23 @@ async def stream_upload_progress(
     await QuotaService.get_upload_status(session, reservation_id, current_user)
 
     async def event_generator():
-        stat = await QuotaService.get_upload_status(session, reservation_id, current_user)
+        stat = await QuotaService.get_upload_status(
+            session, reservation_id, current_user
+        )
         yield f"data: {stat.model_dump_json()}\n\n"
-        if stat.status in ("COMPLETED", "FAILED", "CANCELLED", "EXPIRED") or max_events <= 1:
+        if (
+            stat.status in ("COMPLETED", "FAILED", "CANCELLED", "EXPIRED")
+            or max_events <= 1
+        ):
             return
 
         for _ in range(max_events - 1):
             if await request.is_disconnected():
                 break
             await asyncio.sleep(0.5)
-            stat = await QuotaService.get_upload_status(session, reservation_id, current_user)
+            stat = await QuotaService.get_upload_status(
+                session, reservation_id, current_user
+            )
             yield f"data: {stat.model_dump_json()}\n\n"
             if stat.status in ("COMPLETED", "FAILED", "CANCELLED", "EXPIRED"):
                 break

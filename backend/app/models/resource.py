@@ -23,11 +23,17 @@ from app.models.base import TimestampMixin
 class Subject(Base):
     __tablename__ = "subjects"
 
-    subject_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    department_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("departments.department_id", ondelete="CASCADE"), nullable=False
+    subject_id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True
     )
-    code: Mapped[str] = mapped_column(String(30), unique=True, index=True, nullable=False)
+    department_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("departments.department_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    code: Mapped[str] = mapped_column(
+        String(30), unique=True, index=True, nullable=False
+    )
     name: Mapped[str] = mapped_column(String(150), nullable=False)
     semester: Mapped[int] = mapped_column(Integer, nullable=False)
 
@@ -38,7 +44,9 @@ class Subject(Base):
 class AcademicYear(Base):
     __tablename__ = "academic_years"
 
-    academic_year_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    academic_year_id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True
+    )
     label: Mapped[str] = mapped_column(String(30), unique=True, nullable=False)
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     end_date: Mapped[date] = mapped_column(Date, nullable=False)
@@ -58,21 +66,31 @@ class Resource(Base, TimestampMixin):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     owner_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False
+        UUID(as_uuid=True),
+        ForeignKey("users.user_id", ondelete="CASCADE"),
+        nullable=False,
     )
     folder_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("folders.folder_id", ondelete="SET NULL"), nullable=True
+        UUID(as_uuid=True),
+        ForeignKey("folders.folder_id", ondelete="SET NULL"),
+        nullable=True,
     )
     subject_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("subjects.subject_id", ondelete="SET NULL"), nullable=True
     )
     academic_year_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("academic_years.academic_year_id", ondelete="SET NULL"), nullable=True
+        Integer,
+        ForeignKey("academic_years.academic_year_id", ondelete="SET NULL"),
+        nullable=True,
     )
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    visibility: Mapped[str] = mapped_column(String(30), default="PRIVATE", nullable=False)
-    status: Mapped[str] = mapped_column(String(30), default="PENDING_VALIDATION", nullable=False)
+    visibility: Mapped[str] = mapped_column(
+        String(30), default="PRIVATE", nullable=False
+    )
+    status: Mapped[str] = mapped_column(
+        String(30), default="PENDING_VALIDATION", nullable=False
+    )
 
     # Relationships
     owner = relationship("User", back_populates="resources")
@@ -94,17 +112,23 @@ class Resource(Base, TimestampMixin):
 class ResourceVersion(Base):
     __tablename__ = "resource_versions"
     __table_args__ = (
-        UniqueConstraint("resource_id", "version_number", name="uq_resource_version_number"),
+        UniqueConstraint(
+            "resource_id", "version_number", name="uq_resource_version_number"
+        ),
     )
 
     version_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     resource_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("resources.resource_id", ondelete="CASCADE"), nullable=False
+        UUID(as_uuid=True),
+        ForeignKey("resources.resource_id", ondelete="CASCADE"),
+        nullable=False,
     )
     uploaded_by: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.user_id", ondelete="RESTRICT"), nullable=False
+        UUID(as_uuid=True),
+        ForeignKey("users.user_id", ondelete="RESTRICT"),
+        nullable=False,
     )
     version_number: Mapped[int] = mapped_column(Integer, nullable=False)
     content_type: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -117,7 +141,10 @@ class ResourceVersion(Base):
 
     resource = relationship("Resource", back_populates="versions")
     storage_object = relationship(
-        "StorageObject", back_populates="version", uselist=False, cascade="all, delete-orphan"
+        "StorageObject",
+        back_populates="version",
+        uselist=False,
+        cascade="all, delete-orphan",
     )
 
 
@@ -125,9 +152,13 @@ class Tag(Base):
     __tablename__ = "tags"
 
     tag_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
+    name: Mapped[str] = mapped_column(
+        String(50), unique=True, index=True, nullable=False
+    )
 
-    resources = relationship("Resource", secondary="resource_tags", back_populates="tags")
+    resources = relationship(
+        "Resource", secondary="resource_tags", back_populates="tags"
+    )
 
 
 class ResourceTag(Base):
@@ -154,16 +185,22 @@ class ResourceAccess(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     resource_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("resources.resource_id", ondelete="CASCADE"), nullable=False
+        UUID(as_uuid=True),
+        ForeignKey("resources.resource_id", ondelete="CASCADE"),
+        nullable=False,
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False
+        UUID(as_uuid=True),
+        ForeignKey("users.user_id", ondelete="CASCADE"),
+        nullable=False,
     )
     permission: Mapped[str] = mapped_column(
         String(30), default="VIEW", nullable=False
     )  # VIEW | EDIT
     granted_by: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.user_id", ondelete="RESTRICT"), nullable=False
+        UUID(as_uuid=True),
+        ForeignKey("users.user_id", ondelete="RESTRICT"),
+        nullable=False,
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

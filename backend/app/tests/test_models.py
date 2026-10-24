@@ -23,13 +23,17 @@ async def test_seeded_data_exists(db_session: AsyncSession):
     assert user_count is not None and user_count >= 3
 
     # Verify quotas
-    student = await db_session.scalar(select(User).where(User.email == "student@amu.edu"))
+    student = await db_session.scalar(
+        select(User).where(User.email == "student@amu.edu")
+    )
     assert student is not None
     student_quota = await db_session.get(StorageQuota, student.user_id)
     assert student_quota is not None
     assert student_quota.quota_bytes == 1_073_741_824  # 1 GiB
 
-    teacher = await db_session.scalar(select(User).where(User.email == "teacher@amu.edu"))
+    teacher = await db_session.scalar(
+        select(User).where(User.email == "teacher@amu.edu")
+    )
     assert teacher is not None
     teacher_quota = await db_session.get(StorageQuota, teacher.user_id)
     assert teacher_quota is not None
@@ -81,7 +85,9 @@ async def test_role_restrict_foreign_key_constraint(db_session: AsyncSession):
 @pytest.mark.asyncio
 async def test_resource_version_unique_constraint(db_session: AsyncSession):
     """EC-02.4: Verify (resource_id, version_number) unique constraint."""
-    student = await db_session.scalar(select(User).where(User.email == "student@amu.edu"))
+    student = await db_session.scalar(
+        select(User).where(User.email == "student@amu.edu")
+    )
     assert student is not None
 
     res = Resource(

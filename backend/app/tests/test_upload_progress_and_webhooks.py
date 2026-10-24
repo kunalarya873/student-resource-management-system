@@ -76,7 +76,9 @@ async def test_upload_progress_tracking_lifecycle(
 
 
 @pytest.mark.asyncio
-async def test_upload_status_access_control(async_client: AsyncClient, db_session: AsyncSession):
+async def test_upload_status_access_control(
+    async_client: AsyncClient, db_session: AsyncSession
+):
     """
     Ensure users cannot inspect or modify another user's upload progress.
     """
@@ -133,7 +135,7 @@ async def test_supabase_storage_webhook_authentication(
         "schema": "storage",
         "record": {
             "name": "users/dummy/test.pdf",
-            "bucket_id": "files",
+            "bucket_id": "resources",
             "metadata": {"size": 100, "mimetype": "application/pdf"},
         },
     }
@@ -185,11 +187,15 @@ async def test_supabase_storage_webhook_finalizes_reservation_and_preserves_priv
     """
     student_token = await get_auth_token(async_client, "student@amu.edu")
     headers_student = {"Authorization": f"Bearer {student_token}"}
-    student = await db_session.scalar(select(User).where(User.email == "student@amu.edu"))
+    student = await db_session.scalar(
+        select(User).where(User.email == "student@amu.edu")
+    )
     assert student is not None
 
     file_size = 750_000
-    unique_key = f"users/{student.user_id}/Assignments/{uuid.uuid4().hex[:8]}_research_paper.pdf"
+    unique_key = (
+        f"users/{student.user_id}/Assignments/{uuid.uuid4().hex[:8]}_research_paper.pdf"
+    )
 
     # Step 1: Initiate reservation
     init_res = await async_client.post(
@@ -226,7 +232,7 @@ async def test_supabase_storage_webhook_finalizes_reservation_and_preserves_priv
         "schema": "storage",
         "record": {
             "name": unique_key,
-            "bucket_id": "files",
+            "bucket_id": "resources",
             "metadata": {
                 "size": file_size,
                 "mimetype": "application/pdf",

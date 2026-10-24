@@ -45,7 +45,9 @@ async def test_end_to_end_upload_pipeline(async_client: AsyncClient):
     token = await get_auth_token(async_client, "student@amu.edu")
     headers = {"Authorization": f"Bearer {token}"}
 
-    payload_data = b"Hello AMU Student Resource Management System - Object Storage Pipeline!"
+    payload_data = (
+        b"Hello AMU Student Resource Management System - Object Storage Pipeline!"
+    )
     payload_size = len(payload_data)
 
     # 1. Initiate upload
@@ -112,10 +114,16 @@ async def test_ec05_1_concurrent_quota_race_attack(db_session: AsyncSession):
     Zero bytes over-allocated.
     """
     # 1. Setup isolated user quota
-    student = await db_session.scalar(select(User).where(User.email == "student@amu.edu"))
+    student = await db_session.scalar(
+        select(User).where(User.email == "student@amu.edu")
+    )
     assert student is not None
 
-    stmt = select(StorageQuota).where(StorageQuota.user_id == student.user_id).with_for_update()
+    stmt = (
+        select(StorageQuota)
+        .where(StorageQuota.user_id == student.user_id)
+        .with_for_update()
+    )
     quota = await db_session.scalar(stmt)
     assert quota is not None
 
@@ -218,7 +226,9 @@ async def test_ec05_2_fake_upload_completion_rejected(async_client: AsyncClient)
 
 
 @pytest.mark.asyncio
-async def test_ec05_3_size_discrepancy_attack(async_client: AsyncClient, db_session: AsyncSession):
+async def test_ec05_3_size_discrepancy_attack(
+    async_client: AsyncClient, db_session: AsyncSession
+):
     """
     EC-05.3: Size Discrepancy Attack
     Client reserves 500 bytes, but uploads a payload exceeding remaining quota.
@@ -227,10 +237,14 @@ async def test_ec05_3_size_discrepancy_attack(async_client: AsyncClient, db_sess
     token = await get_auth_token(async_client, "student@amu.edu")
     headers = {"Authorization": f"Bearer {token}"}
 
-    student = await db_session.scalar(select(User).where(User.email == "student@amu.edu"))
+    student = await db_session.scalar(
+        select(User).where(User.email == "student@amu.edu")
+    )
     assert student is not None
     quota = await db_session.scalar(
-        select(StorageQuota).where(StorageQuota.user_id == student.user_id).with_for_update()
+        select(StorageQuota)
+        .where(StorageQuota.user_id == student.user_id)
+        .with_for_update()
     )
     assert quota is not None
     # Set quota so that only 1000 bytes are available
@@ -313,7 +327,9 @@ async def test_ec05_4_reservation_abandonment_and_sweeper(
     # 3. Call admin cleanup sweeper
     admin_token = await get_auth_token(async_client, "admin@amu.edu")
     admin_headers = {"Authorization": f"Bearer {admin_token}"}
-    sweep_res = await async_client.post("/api/v1/storage/cleanup-expired", headers=admin_headers)
+    sweep_res = await async_client.post(
+        "/api/v1/storage/cleanup-expired", headers=admin_headers
+    )
     assert sweep_res.status_code == 200
     assert "Cleaned up" in sweep_res.json()["message"]
 
@@ -321,7 +337,9 @@ async def test_ec05_4_reservation_abandonment_and_sweeper(
     await db_session.refresh(reservation)
     assert reservation.status == "EXPIRED"
 
-    student = await db_session.scalar(select(User).where(User.email == "student@amu.edu"))
+    student = await db_session.scalar(
+        select(User).where(User.email == "student@amu.edu")
+    )
     assert student is not None
     quota = await db_session.scalar(
         select(StorageQuota).where(StorageQuota.user_id == student.user_id)
@@ -331,7 +349,9 @@ async def test_ec05_4_reservation_abandonment_and_sweeper(
 
 
 @pytest.mark.asyncio
-async def test_cancel_upload_reservation(async_client: AsyncClient, db_session: AsyncSession):
+async def test_cancel_upload_reservation(
+    async_client: AsyncClient, db_session: AsyncSession
+):
     """Test manual cancellation of a pending upload reservation."""
     token = await get_auth_token(async_client, "student@amu.edu")
     headers = {"Authorization": f"Bearer {token}"}
@@ -349,7 +369,9 @@ async def test_cancel_upload_reservation(async_client: AsyncClient, db_session: 
     res_id = init_res.json()["reservation_id"]
 
     # Cancel
-    cancel_res = await async_client.post(f"/api/v1/uploads/{res_id}/cancel", headers=headers)
+    cancel_res = await async_client.post(
+        f"/api/v1/uploads/{res_id}/cancel", headers=headers
+    )
     assert cancel_res.status_code == 200
     assert "cancelled" in cancel_res.json()["message"]
 

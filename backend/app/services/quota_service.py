@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.validators import sanitize_filename
 from app.models.storage import StorageObject, StorageQuota, UploadReservation
 from app.models.user import User
 from app.repositories.storage_repository import storage_repository
@@ -14,9 +15,6 @@ from app.schemas.storage import StorageQuotaResponse, UploadStatusResponse
 from app.services.storage_service import storage_service
 
 logger = logging.getLogger("amu_quota")
-
-
-from app.core.validators import sanitize_filename
 
 
 class QuotaService:
@@ -47,12 +45,18 @@ class QuotaService:
         return quota
 
     @classmethod
-    async def get_quota_summary(cls, session: AsyncSession, user: User) -> StorageQuotaResponse:
+    async def get_quota_summary(
+        cls, session: AsyncSession, user: User
+    ) -> StorageQuotaResponse:
         """Fetch the current quota allocation breakdown for a user."""
         quota = await cls.get_or_create_quota(session, user, for_update=False)
-        available_bytes = max(0, quota.quota_bytes - (quota.used_bytes + quota.reserved_bytes))
+        available_bytes = max(
+            0, quota.quota_bytes - (quota.used_bytes + quota.reserved_bytes)
+        )
         percent_used = (
-            round((quota.used_bytes / quota.quota_bytes) * 100, 2) if quota.quota_bytes > 0 else 0.0
+            round((quota.used_bytes / quota.quota_bytes) * 100, 2)
+            if quota.quota_bytes > 0
+            else 0.0
         )
         return StorageQuotaResponse(
             user_id=quota.user_id,
@@ -172,7 +176,9 @@ class QuotaService:
         if reservation.expires_at < now_utc:
             # Release reservation bytes
             quota = await cls.get_or_create_quota(session, user, for_update=True)
-            quota.reserved_bytes = max(0, quota.reserved_bytes - reservation.reserved_bytes)
+            quota.reserved_bytes = max(
+                0, quota.reserved_bytes - reservation.reserved_bytes
+            )
             reservation.status = "EXPIRED"
             await session.commit()
             raise HTTPException(
@@ -201,7 +207,9 @@ class QuotaService:
         size_delta = actual_size - reservation.reserved_bytes
         if size_delta > 0:
             # The client uploaded more bytes than originally reserved
-            available_after_reserve = quota.quota_bytes - (quota.used_bytes + quota.reserved_bytes)
+            available_after_reserve = quota.quota_bytes - (
+                quota.used_bytes + quota.reserved_bytes
+            )
             if size_delta > available_after_reserve:
                 # Quota exceeded by the discrepancy
                 raise HTTPException(
@@ -294,7 +302,9 @@ class QuotaService:
         # Apply quota restoration per user under row lock
         for user_id, bytes_to_restore in user_bytes_to_restore.items():
             quota_stmt = (
-                select(StorageQuota).where(StorageQuota.user_id == user_id).with_for_update()
+                select(StorageQuota)
+                .where(StorageQuota.user_id == user_id)
+                .with_for_update()
             )
             quota = await session.scalar(quota_stmt)
             if quota:
@@ -314,7 +324,11 @@ class QuotaService:
         cls, session: AsyncSession, user_id: uuid.UUID, bytes_to_release: int
     ) -> None:
         """Release storage quota when resources or versions are deleted."""
-        stmt = select(StorageQuota).where(StorageQuota.user_id == user_id).with_for_update()
+        stmt = (
+            select(StorageQuota)
+            .where(StorageQuota.user_id == user_id)
+            .with_for_update()
+        )
         quota = await session.scalar(stmt)
         if quota:
             quota.used_bytes = max(0, quota.used_bytes - bytes_to_release)
@@ -340,7 +354,11 @@ class QuotaService:
                 detail="Upload reservation not found.",
             )
 
-        if reservation.user_id != user.user_id and user.role and user.role.name != "Administrator":
+        if (
+            reservation.user_id != user.user_id
+            and user.role
+            and user.role.name != "Administrator"
+        ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You do not have access to this upload reservation.",
@@ -398,14 +416,20 @@ class QuotaService:
                 detail="Upload reservation not found.",
             )
 
-        if reservation.user_id != user.user_id and user.role and user.role.name != "Administrator":
+        if (
+            reservation.user_id != user.user_id
+            and user.role
+            and user.role.name != "Administrator"
+        ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You do not have access to this upload reservation.",
             )
 
         if reservation.status in ("PENDING", "UPLOADING"):
-            reservation.progress_percent = max(reservation.progress_percent, progress_percent)
+            reservation.progress_percent = max(
+                reservation.progress_percent, progress_percent
+            )
             if bytes_uploaded is not None:
                 reservation.actual_bytes = bytes_uploaded
             if reservation.progress_percent > 0 and reservation.status == "PENDING":

@@ -19,7 +19,9 @@ async def test_signup_success_and_email_dispatched(
     """Verify registration creates unverified user, allocates quota, and triggers verification email."""
     test_email = f"student_{uuid.uuid4().hex[:8]}@amu.edu"
 
-    with patch.object(EmailService, "send_verification_email", return_value=True) as mock_send:
+    with patch.object(
+        EmailService, "send_verification_email", return_value=True
+    ) as mock_send:
         res = await async_client.post(
             "/api/v1/auth/signup",
             json={
@@ -130,7 +132,9 @@ async def test_login_blocked_while_pending_verification(
 
 
 @pytest.mark.asyncio
-async def test_verify_email_post_flow(async_client: AsyncClient, db_session: AsyncSession):
+async def test_verify_email_post_flow(
+    async_client: AsyncClient, db_session: AsyncSession
+):
     """Verify email verification transitions user to ACTIVE and unlocks login."""
     test_email = f"verify_{uuid.uuid4().hex[:8]}@amu.edu"
     captured_token = None
@@ -178,7 +182,9 @@ async def test_verify_email_post_flow(async_client: AsyncClient, db_session: Asy
 
 
 @pytest.mark.asyncio
-async def test_verify_email_get_flow(async_client: AsyncClient, db_session: AsyncSession):
+async def test_verify_email_get_flow(
+    async_client: AsyncClient, db_session: AsyncSession
+):
     """Verify email verification works via GET endpoint for direct email clicks."""
     test_email = f"getverify_{uuid.uuid4().hex[:8]}@amu.edu"
     captured_token = None
@@ -198,7 +204,9 @@ async def test_verify_email_get_flow(async_client: AsyncClient, db_session: Asyn
             },
         )
 
-    get_res = await async_client.get(f"/api/v1/auth/verify-email?token={captured_token}")
+    get_res = await async_client.get(
+        f"/api/v1/auth/verify-email?token={captured_token}"
+    )
     assert get_res.status_code == 200
     assert "verified successfully" in get_res.json()["message"].lower()
 
@@ -215,7 +223,9 @@ async def test_verify_email_invalid_token(async_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_resend_verification_email(async_client: AsyncClient, db_session: AsyncSession):
+async def test_resend_verification_email(
+    async_client: AsyncClient, db_session: AsyncSession
+):
     """Verify resending verification link for unverified account."""
     test_email = f"resend_{uuid.uuid4().hex[:8]}@amu.edu"
 
@@ -229,7 +239,9 @@ async def test_resend_verification_email(async_client: AsyncClient, db_session: 
             },
         )
 
-    with patch.object(EmailService, "send_verification_email", return_value=True) as mock_resend:
+    with patch.object(
+        EmailService, "send_verification_email", return_value=True
+    ) as mock_resend:
         res = await async_client.post(
             "/api/v1/auth/resend-verification",
             json={"email": test_email},
@@ -239,7 +251,9 @@ async def test_resend_verification_email(async_client: AsyncClient, db_session: 
 
 
 @pytest.mark.asyncio
-async def test_forgot_and_reset_password_flow(async_client: AsyncClient, db_session: AsyncSession):
+async def test_forgot_and_reset_password_flow(
+    async_client: AsyncClient, db_session: AsyncSession
+):
     """Verify forgot-password generates reset email and reset-password updates credentials."""
     user = await db_session.scalar(select(User).where(User.email == "student@amu.edu"))
     assert user is not None
@@ -293,7 +307,9 @@ async def test_forgot_and_reset_password_flow(async_client: AsyncClient, db_sess
     assert "access_token" in new_login.json()
 
     # Restore original password for test consistency
-    with patch.object(EmailService, "send_password_reset_confirmation", return_value=True):
+    with patch.object(
+        EmailService, "send_password_reset_confirmation", return_value=True
+    ):
         new_token = create_password_reset_token(user.user_id, user.email)
         await async_client.post(
             "/api/v1/auth/reset-password",

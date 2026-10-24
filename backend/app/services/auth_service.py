@@ -37,7 +37,9 @@ DUMMY_BCRYPT_HASH = "$2b$12$e8rO8vM182g262D/d1K/Z.vNlO2vE9rF0p8Zz2g4K1h3g5k7m9q1
 
 class AuthService:
     @classmethod
-    async def authenticate_user(cls, session: AsyncSession, email: str, password: str) -> User:
+    async def authenticate_user(
+        cls, session: AsyncSession, email: str, password: str
+    ) -> User:
         stmt = (
             select(User)
             .options(
@@ -111,7 +113,9 @@ class AuthService:
         except Exception as exc:
             raise credentials_exception from exc
 
-        stmt = select(User).options(selectinload(User.role)).where(User.user_id == user_id)
+        stmt = (
+            select(User).options(selectinload(User.role)).where(User.user_id == user_id)
+        )
         user = await session.scalar(stmt)
         if not user or user.status != "ACTIVE":
             raise credentials_exception
@@ -119,12 +123,16 @@ class AuthService:
         return cls.issue_tokens(user)
 
     @classmethod
-    async def register_user(cls, session: AsyncSession, payload: SignupRequest) -> SignupResponse:
+    async def register_user(
+        cls, session: AsyncSession, payload: SignupRequest
+    ) -> SignupResponse:
         """Register a new student or teacher account in PENDING_VERIFICATION status with quota."""
         clean_email = payload.email.strip().lower()
 
         # Check for existing account
-        existing_user = await session.scalar(select(User).where(User.email == clean_email))
+        existing_user = await session.scalar(
+            select(User).where(User.email == clean_email)
+        )
         if existing_user:
             if existing_user.status == "PENDING_VERIFICATION":
                 raise HTTPException(
@@ -166,7 +174,9 @@ class AuthService:
         # Validate department if provided
         if payload.department_id is not None:
             dept = await session.scalar(
-                select(Department).where(Department.department_id == payload.department_id)
+                select(Department).where(
+                    Department.department_id == payload.department_id
+                )
             )
             if not dept:
                 raise HTTPException(
@@ -213,7 +223,8 @@ class AuthService:
             email=user.email,
             otp_hash=hash_otp(otp_code),
             purpose="EMAIL_VERIFICATION",
-            expires_at=datetime.now(UTC) + timedelta(minutes=settings.OTP_EXPIRE_MINUTES),
+            expires_at=datetime.now(UTC)
+            + timedelta(minutes=settings.OTP_EXPIRE_MINUTES),
             max_attempts=settings.OTP_MAX_ATTEMPTS,
         )
         session.add(otp_record)
@@ -233,7 +244,9 @@ class AuthService:
         )
 
     @classmethod
-    async def verify_email(cls, session: AsyncSession, token: str) -> StandardMessageResponse:
+    async def verify_email(
+        cls, session: AsyncSession, token: str
+    ) -> StandardMessageResponse:
         """Validate email verification token and transition account to ACTIVE status."""
         try:
             payload = decode_email_verification_token(token)
@@ -253,7 +266,9 @@ class AuthService:
             )
 
         if user.status == "ACTIVE":
-            return StandardMessageResponse(message="Email is already verified. You can now log in.")
+            return StandardMessageResponse(
+                message="Email is already verified. You can now log in."
+            )
 
         user.status = "ACTIVE"
         # Invalidate any pending OTPs for this user
@@ -291,7 +306,9 @@ class AuthService:
             )
 
         if user.status == "ACTIVE":
-            return StandardMessageResponse(message="Email is already verified. You can now log in.")
+            return StandardMessageResponse(
+                message="Email is already verified. You can now log in."
+            )
 
         if user.status != "PENDING_VERIFICATION":
             raise HTTPException(
@@ -353,7 +370,9 @@ class AuthService:
         )
 
     @classmethod
-    async def resend_otp(cls, session: AsyncSession, email: str) -> StandardMessageResponse:
+    async def resend_otp(
+        cls, session: AsyncSession, email: str
+    ) -> StandardMessageResponse:
         """Resend a fresh 6-digit OTP code to pending unverified accounts with cooldown rate-limiting."""
         clean_email = email.strip().lower()
         stmt = select(User).where(User.email == clean_email)
@@ -441,13 +460,17 @@ class AuthService:
                 email=user.email,
                 otp_hash=hash_otp(otp_code),
                 purpose="EMAIL_VERIFICATION",
-                expires_at=datetime.now(UTC) + timedelta(minutes=settings.OTP_EXPIRE_MINUTES),
+                expires_at=datetime.now(UTC)
+                + timedelta(minutes=settings.OTP_EXPIRE_MINUTES),
                 max_attempts=settings.OTP_MAX_ATTEMPTS,
             )
             session.add(otp_record)
             await session.commit()
             await EmailService.send_verification_email(
-                email=user.email, full_name=user.full_name, token=token, otp_code=otp_code
+                email=user.email,
+                full_name=user.full_name,
+                token=token,
+                otp_code=otp_code,
             )
         else:
             # Timing mitigation for non-existent or active users

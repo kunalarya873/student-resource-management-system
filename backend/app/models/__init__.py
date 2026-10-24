@@ -13,7 +13,14 @@ from app.models.resource import (
     Tag,
 )
 from app.models.storage import StorageObject, StorageQuota, UploadReservation
-from app.models.user import Department, EmailOTP, Role, StudentSubject, TeacherSubject, User
+from app.models.user import (
+    Department,
+    EmailOTP,
+    Role,
+    StudentSubject,
+    TeacherSubject,
+    User,
+)
 
 __all__ = [
     "AcademicYear",
