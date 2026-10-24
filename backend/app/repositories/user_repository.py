@@ -27,11 +27,15 @@ class UserRepository(BaseRepository[User]):
     async def get_by_id_with_relations(
         self, session: AsyncSession, user_id: uuid.UUID
     ) -> User | None:
-        """Fetch user by primary key eager-loading role and department relationships."""
+        """Fetch user by primary key eager-loading role, department, and storage quota relationships."""
         stmt = (
             select(User)
             .where(User.user_id == user_id)
-            .options(selectinload(User.role), selectinload(User.department))
+            .options(
+                selectinload(User.role),
+                selectinload(User.department),
+                selectinload(User.storage_quota),
+            )
         )
         return await session.scalar(stmt)
 

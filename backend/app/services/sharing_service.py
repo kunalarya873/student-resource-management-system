@@ -2,12 +2,15 @@ import logging
 import uuid
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.resource import Resource, ResourceAccess
 from app.models.user import User
+from app.repositories.resource_repository import resource_repository
+from app.repositories.sharing_repository import sharing_repository
+from app.repositories.user_repository import user_repository
 from app.schemas.sharing import ShareGrantRead
 
 logger = logging.getLogger("amu_sharing")
@@ -50,12 +53,10 @@ class SharingService:
             ):
                 return True
 
-        # 4. Explicit ResourceAccess grant
-        stmt = select(ResourceAccess).where(
-            ResourceAccess.resource_id == resource.resource_id,
-            ResourceAccess.user_id == user.user_id,
+        # 4. Explicit ResourceAccess grant via sharing_repository
+        grant = await sharing_repository.get_active_grant(
+            session, resource.resource_id, user.user_id
         )
-        grant = await session.scalar(stmt)
         if grant:
             if required_permission == "VIEW":
                 return True
@@ -84,7 +85,7 @@ class SharingService:
                 detail="Invalid permission. Must be 'VIEW' or 'EDIT'.",
             )
 
-        resource = await session.get(Resource, resource_id)
+        resource = await resource_repository.get_by_id(session, resource_id)
         if not resource:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -98,10 +99,8 @@ class SharingService:
                 detail="Only the resource owner or an administrator can grant access.",
             )
 
-        # EC-07.4: Find grantee user
-        grantee = await session.scalar(
-            select(User).where(func.lower(User.email) == grantee_email.strip().lower())
-        )
+        # EC-07.4: Find grantee user via user_repository
+        grantee = await user_repository.get_by_email(session, grantee_email)
         if not grantee:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -115,39 +114,24 @@ class SharingService:
                 detail="Cannot share a resource with yourself.",
             )
 
-        # Check existing grant (upsert behavior)
-        stmt_existing = select(ResourceAccess).where(
-            ResourceAccess.resource_id == resource_id,
-            ResourceAccess.user_id == grantee.user_id,
-        )
-        existing_grant = await session.scalar(stmt_existing)
-        if existing_grant:
-            existing_grant.permission = clean_permission
+        # Check existing grant via sharing_repository (upsert behavior)
+        existing = await sharing_repository.get_active_grant(session, resource_id, grantee.user_id)
+        if existing:
+            existing.permission = clean_permission
             await session.commit()
-            target_id = existing_grant.access_id
-        else:
-            grant = ResourceAccess(
-                resource_id=resource_id,
-                user_id=grantee.user_id,
-                permission=clean_permission,
-                granted_by=actor.user_id,
-            )
-            session.add(grant)
-            await session.commit()
-            target_id = grant.access_id
+            existing.user = grantee
+            return existing
 
-        loaded_stmt = (
-            select(ResourceAccess)
-            .options(selectinload(ResourceAccess.user))
-            .where(ResourceAccess.access_id == target_id)
+        grant = ResourceAccess(
+            resource_id=resource_id,
+            user_id=grantee.user_id,
+            permission=clean_permission,
+            granted_by=actor.user_id,
         )
-        access_grant = await session.scalar(loaded_stmt)
-        if not access_grant:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to load created resource access grant.",
-            )
-        return access_grant
+        await sharing_repository.create(session, grant)
+        await session.commit()
+        grant.user = grantee
+        return grant
 
     @classmethod
     async def revoke_access(
@@ -156,9 +140,12 @@ class SharingService:
         actor: User,
         resource_id: uuid.UUID,
         access_id: uuid.UUID,
-    ) -> None:
-        """Revoke a previously granted access permission (EC-07.3)."""
-        resource = await session.get(Resource, resource_id)
+    ):
+        """
+        Revokes a granted permission immediately.
+        Enforces EC-07.1: Only owner or admin can revoke.
+        """
+        resource = await resource_repository.get_by_id(session, resource_id)
         if not resource:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -171,7 +158,7 @@ class SharingService:
                 detail="Only the resource owner or an administrator can revoke access.",
             )
 
-        grant = await session.get(ResourceAccess, access_id)
+        grant = await sharing_repository.get_by_id(session, access_id)
         if not grant or grant.resource_id != resource_id:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -189,7 +176,7 @@ class SharingService:
         resource_id: uuid.UUID,
     ) -> list[ShareGrantRead]:
         """List all active share grants on a resource (Owner/Admin only)."""
-        resource = await session.get(Resource, resource_id)
+        resource = await resource_repository.get_by_id(session, resource_id)
         if not resource:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -202,13 +189,7 @@ class SharingService:
                 detail="Only the resource owner or an administrator can view share grants.",
             )
 
-        stmt = (
-            select(ResourceAccess)
-            .options(selectinload(ResourceAccess.user))
-            .where(ResourceAccess.resource_id == resource_id)
-            .order_by(ResourceAccess.created_at.desc())
-        )
-        grants = (await session.scalars(stmt)).all()
+        grants = await sharing_repository.list_grants_for_resource(session, resource_id)
         return [
             ShareGrantRead(
                 access_id=g.access_id,

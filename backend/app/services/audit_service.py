@@ -2,12 +2,11 @@ import logging
 import uuid
 from typing import Any
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.models.audit import AuditEvent
 from app.models.user import User
+from app.repositories.audit_repository import audit_repository
 from app.schemas.admin import AuditEventRead
 
 logger = logging.getLogger("amu_backend")
@@ -42,7 +41,7 @@ class AuditService:
         details: dict[str, Any] | None = None,
     ) -> AuditEvent:
         """
-        Emits an immutable audit event to the database.
+        Emits an immutable audit event to the database via audit_repository.
         Masks any sensitive PII in the details payload.
         """
         clean_details = dict(details or {})
@@ -50,17 +49,14 @@ class AuditService:
             if key in clean_details and isinstance(clean_details[key], str):
                 clean_details[key] = mask_email(clean_details[key])
 
-        event = AuditEvent(
+        return await audit_repository.create_event(
+            session=session,
             actor_id=actor.user_id if actor else None,
-            action=action.upper(),
-            entity_type=entity_type.upper(),
+            action=action,
+            entity_type=entity_type,
             entity_id=entity_id,
             details=clean_details,
         )
-        session.add(event)
-        # Flush within current transaction boundary
-        await session.flush()
-        return event
 
     @staticmethod
     async def list_audit_logs(
@@ -76,19 +72,13 @@ class AuditService:
         limit = max(1, min(limit, 200))
         offset = max(0, offset)
 
-        stmt = (
-            select(AuditEvent)
-            .options(selectinload(AuditEvent.actor))
-            .order_by(AuditEvent.created_at.desc())
-            .offset(offset)
-            .limit(limit)
+        events = await audit_repository.list_recent_events(
+            session=session,
+            skip=offset,
+            limit=limit,
+            action=action,
+            entity_type=entity_type,
         )
-        if action:
-            stmt = stmt.where(AuditEvent.action == action.upper())
-        if entity_type:
-            stmt = stmt.where(AuditEvent.entity_type == entity_type.upper())
-
-        events = (await session.scalars(stmt)).all()
 
         results: list[AuditEventRead] = []
         for e in events:

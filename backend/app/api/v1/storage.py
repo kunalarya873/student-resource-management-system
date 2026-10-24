@@ -6,8 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db_session
 from app.core.dependencies import get_current_user, require_role
-from app.models.storage import StorageObject
 from app.models.user import User
+from app.repositories.storage_repository import storage_repository
 from app.schemas.common import StandardMessageResponse
 from app.schemas.storage import DownloadUrlResponse, StorageQuotaResponse
 from app.services.quota_service import QuotaService
@@ -42,7 +42,7 @@ async def get_object_download_url(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> DownloadUrlResponse:
     """Returns a short-lived presigned URL with Content-Disposition headers for downloading."""
-    storage_obj = await session.get(StorageObject, storage_object_id)
+    storage_obj = await storage_repository.get_storage_object_by_id(session, storage_object_id)
     if not storage_obj:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

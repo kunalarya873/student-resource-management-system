@@ -11,6 +11,8 @@ from app.models.folder import Folder
 from app.models.resource import Resource, ResourceAccess, ResourceVersion
 from app.models.storage import StorageObject, UploadReservation
 from app.models.user import User
+from app.repositories.resource_repository import resource_repository
+from app.repositories.sharing_repository import sharing_repository
 from app.schemas.resource import (
     ResourceCreate,
     ResourceDownloadResponse,
@@ -247,7 +249,7 @@ class ResourceService:
         Creates a new version for an existing resource (increments version_number).
         Preserves all prior versions and historical file storage.
         """
-        resource = await session.get(Resource, resource_id)
+        resource = await resource_repository.get_by_id(session, resource_id)
         if not resource:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -325,15 +327,7 @@ class ResourceService:
         resource_id: uuid.UUID,
     ) -> Resource:
         """Retrieve resource details and enforce authorization guards (EC-06.1, EC-06.4)."""
-        stmt = (
-            select(Resource)
-            .options(
-                selectinload(Resource.versions),
-                selectinload(Resource.owner),
-            )
-            .where(Resource.resource_id == resource_id)
-        )
-        resource = await session.scalar(stmt)
+        resource = await resource_repository.get_by_id_with_details(session, resource_id)
         if not resource:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -352,12 +346,10 @@ class ResourceService:
         if (user.role and user.role.name == "Administrator") or resource.owner_id == user.user_id:
             return
 
-        # Check explicit sharing grant (Phase 7)
-        grant_stmt = select(ResourceAccess).where(
-            ResourceAccess.resource_id == resource.resource_id,
-            ResourceAccess.user_id == user.user_id,
+        # Check explicit sharing grant via sharing_repository (Phase 7)
+        grant = await sharing_repository.get_active_grant(
+            session, resource.resource_id, user.user_id
         )
-        grant = await session.scalar(grant_stmt)
         if grant:
             return
 

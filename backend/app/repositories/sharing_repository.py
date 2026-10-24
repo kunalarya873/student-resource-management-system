@@ -22,9 +22,13 @@ class SharingRepository(BaseRepository[ResourceAccess]):
         user_id: uuid.UUID,
     ) -> ResourceAccess | None:
         """Fetch the active access grant for a specific user on a resource."""
-        stmt = select(ResourceAccess).where(
-            ResourceAccess.resource_id == resource_id,
-            ResourceAccess.granted_to_user_id == user_id,
+        stmt = (
+            select(ResourceAccess)
+            .where(
+                ResourceAccess.resource_id == resource_id,
+                ResourceAccess.user_id == user_id,
+            )
+            .options(selectinload(ResourceAccess.user))
         )
         return await session.scalar(stmt)
 
@@ -37,7 +41,7 @@ class SharingRepository(BaseRepository[ResourceAccess]):
         stmt = (
             select(ResourceAccess)
             .where(ResourceAccess.resource_id == resource_id)
-            .options(selectinload(ResourceAccess.granted_to_user))
+            .options(selectinload(ResourceAccess.user))
             .order_by(ResourceAccess.created_at.desc())
         )
         result = await session.scalars(stmt)
@@ -54,7 +58,7 @@ class SharingRepository(BaseRepository[ResourceAccess]):
         """List resources that have been shared with a specific user."""
         stmt = (
             select(ResourceAccess)
-            .where(ResourceAccess.granted_to_user_id == user_id)
+            .where(ResourceAccess.user_id == user_id)
             .options(selectinload(ResourceAccess.resource))
             .offset(skip)
             .limit(limit)

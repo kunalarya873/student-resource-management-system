@@ -3,14 +3,13 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
 from app.core.database import get_db_session
 from app.core.security import decode_token
 from app.models.user import User
+from app.repositories.user_repository import user_repository
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_PREFIX}/auth/login",
@@ -38,16 +37,7 @@ async def get_current_user(
     except Exception as exc:
         raise credentials_exception from exc
 
-    stmt = (
-        select(User)
-        .options(
-            selectinload(User.role),
-            selectinload(User.department),
-            selectinload(User.storage_quota),
-        )
-        .where(User.user_id == user_id)
-    )
-    user = await session.scalar(stmt)
+    user = await user_repository.get_by_id_with_relations(session, user_id)
     if user is None:
         raise credentials_exception
     if user.status != "ACTIVE":

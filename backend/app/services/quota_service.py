@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.models.storage import StorageObject, StorageQuota, UploadReservation
 from app.models.user import User
+from app.repositories.storage_repository import storage_repository
 from app.schemas.storage import StorageQuotaResponse, UploadStatusResponse
 from app.services.storage_service import storage_service
 
@@ -26,11 +27,9 @@ class QuotaService:
         cls, session: AsyncSession, user: User, for_update: bool = False
     ) -> StorageQuota:
         """Retrieve the user's storage quota record, provisioning one if not yet present."""
-        stmt = select(StorageQuota).where(StorageQuota.user_id == user.user_id)
-        if for_update:
-            stmt = stmt.with_for_update().execution_options(populate_existing=True)
-
-        quota = await session.scalar(stmt)
+        quota = await storage_repository.get_quota_by_user_id(
+            session, user.user_id, for_update=for_update
+        )
         if not quota:
             # Determine default quota based on user role
             default_quota = settings.STUDENT_DEFAULT_QUOTA_BYTES

@@ -20,13 +20,13 @@ class ResourceRepository(BaseRepository[Resource]):
         session: AsyncSession,
         resource_id: uuid.UUID,
     ) -> Resource | None:
-        """Fetch resource by primary key eager-loading versions and storage metadata."""
+        """Fetch resource by primary key eager-loading versions and owner metadata."""
         stmt = (
             select(Resource)
             .where(Resource.resource_id == resource_id)
             .options(
                 selectinload(Resource.versions).selectinload(ResourceVersion.storage_object),
-                selectinload(Resource.uploader),
+                selectinload(Resource.owner),
             )
         )
         return await session.scalar(stmt)
@@ -85,13 +85,13 @@ class ResourceRepository(BaseRepository[Resource]):
     async def list_by_owner(
         self,
         session: AsyncSession,
-        uploader_id: uuid.UUID,
+        owner_id: uuid.UUID,
         *,
         skip: int = 0,
         limit: int = 50,
     ) -> Sequence[Resource]:
         """List resources owned by a given user."""
-        stmt = select(Resource).where(Resource.uploader_id == uploader_id).offset(skip).limit(limit)
+        stmt = select(Resource).where(Resource.owner_id == owner_id).offset(skip).limit(limit)
         result = await session.scalars(stmt)
         return result.all()
 

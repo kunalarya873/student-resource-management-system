@@ -9,6 +9,7 @@ from app.core.database import get_db_session
 from app.core.dependencies import require_role
 from app.models.storage import StorageQuota
 from app.models.user import Department, User
+from app.repositories.storage_repository import storage_repository
 from app.schemas.admin import (
     AuditEventRead,
     DepartmentStorageSummary,
@@ -104,7 +105,7 @@ async def update_user_quota(
     Modifies an individual user's storage quota with boundary enforcement (EC-09.3)
     and immutable audit event tracking.
     """
-    quota = await session.get(StorageQuota, user_id)
+    quota = await storage_repository.get_quota_by_user_id(session, user_id)
     if not quota:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

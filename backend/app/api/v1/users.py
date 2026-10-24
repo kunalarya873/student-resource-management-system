@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db_session
 from app.core.dependencies import get_current_user
 from app.models.user import User
+from app.repositories.user_repository import user_repository
 from app.schemas.user import UserRead, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -45,8 +46,9 @@ async def update_current_user_profile(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> UserRead:
     if payload.full_name is not None and payload.full_name.strip():
-        current_user.full_name = payload.full_name.strip()
-        session.add(current_user)
+        await user_repository.update(
+            session, current_user, {"full_name": payload.full_name.strip()}
+        )
         await session.commit()
         await session.refresh(current_user)
 
