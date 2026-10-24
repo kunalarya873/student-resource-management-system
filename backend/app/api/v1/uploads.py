@@ -127,6 +127,25 @@ async def get_upload_status(
     )
 
 
+@router.get(
+    "/{reservation_id}/progress",
+    response_model=UploadStatusResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get current upload progress, processing state, and byte counts",
+)
+async def get_upload_progress(
+    reservation_id: uuid.UUID,
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> UploadStatusResponse:
+    """Retrieve current in-flight or completed upload progress."""
+    return await QuotaService.get_upload_status(
+        session=session,
+        reservation_id=reservation_id,
+        user=current_user,
+    )
+
+
 @router.patch(
     "/{reservation_id}/progress",
     response_model=UploadStatusResponse,

@@ -219,6 +219,7 @@ class QuotaService:
         reservation.actual_bytes = actual_size
         reservation.checksum = effective_checksum
         reservation.status = "COMPLETED"
+        reservation.progress_percent = 100
 
         # 7. Create verified StorageObject
         storage_object = StorageObject(
@@ -351,9 +352,12 @@ class QuotaService:
         )
         if reservation.status == "COMPLETED":
             bytes_uploaded = total_bytes
+            progress_percent = 100
         elif reservation.actual_bytes and reservation.status == "UPLOADING":
             bytes_uploaded = reservation.actual_bytes
+            progress_percent = reservation.progress_percent
         else:
+            progress_percent = reservation.progress_percent
             bytes_uploaded = int(total_bytes * (reservation.progress_percent / 100.0))
 
         updated_at = reservation.updated_at or reservation.created_at
@@ -362,7 +366,7 @@ class QuotaService:
             reservation_id=reservation.reservation_id,
             user_id=reservation.user_id,
             status=reservation.status,
-            progress_percent=reservation.progress_percent,
+            progress_percent=progress_percent,
             bytes_uploaded=bytes_uploaded,
             total_bytes=total_bytes,
             object_key=reservation.object_key,

@@ -1,8 +1,10 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, status
+from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -72,6 +74,34 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(RequestValidationError)
+async def custom_validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
+    """Sanitizes validation errors to prevent UnicodeDecodeError when binary data is passed in request fields."""
+    sanitized_errors = []
+    for err in exc.errors():
+        clean_err = dict(err)
+        # Sanitize binary input payloads
+        if "input" in clean_err and isinstance(clean_err["input"], (bytes, bytearray)):
+            clean_err["input"] = f"<binary data: {len(clean_err['input'])} bytes>"
+        if "ctx" in clean_err and isinstance(clean_err["ctx"], dict):
+            clean_ctx = {}
+            for k, v in clean_err["ctx"].items():
+                if isinstance(v, (bytes, bytearray)):
+                    clean_ctx[k] = f"<binary data: {len(v)} bytes>"
+                else:
+                    clean_ctx[k] = v
+            clean_err["ctx"] = clean_ctx
+        sanitized_errors.append(clean_err)
+
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": sanitized_errors},
+    )
+
 
 app.include_router(api_v1_router, prefix=settings.API_V1_PREFIX)
 
