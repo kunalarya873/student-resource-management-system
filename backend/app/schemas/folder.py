@@ -51,3 +51,11 @@ class FolderContentsResponse(BaseModel):
     limit: int = Field(default=50, description="Items per page")
     total_subfolders: int = Field(default=0, description="Total count of subfolders")
     total_resources: int = Field(default=0, description="Total count of resources")
+
+
+class PaginatedFolderResponse(BaseModel):
+    items: list[FolderRead]
+    page: int = Field(default=1, description="Current page number")
+    limit: int = Field(default=50, description="Items per page")
+    total: int = Field(default=0, description="Total count of folders")
+    total_pages: int = Field(default=0, description="Total pages available")

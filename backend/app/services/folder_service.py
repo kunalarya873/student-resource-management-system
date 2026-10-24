@@ -74,22 +74,31 @@ class FolderService:
         limit: int = 50,
         sort_by: str = "name",
         order: str = "asc",
-    ) -> list[Folder]:
+    ) -> tuple[list[Folder], int, int]:
         page = max(1, page)
         limit = max(1, min(limit, 100))
         offset = (page - 1) * limit
 
+        count_stmt = select(func.count(Folder.folder_id))
         stmt = select(Folder)
         if user.role.name != "Administrator":
+            count_stmt = count_stmt.where(Folder.owner_id == user.user_id)
             stmt = stmt.where(Folder.owner_id == user.user_id)
 
         if parent_id is None:
+            count_stmt = count_stmt.where(Folder.parent_folder_id.is_(None))
             stmt = stmt.where(Folder.parent_folder_id.is_(None))
         else:
+            count_stmt = count_stmt.where(Folder.parent_folder_id == parent_id)
             stmt = stmt.where(Folder.parent_folder_id == parent_id)
 
         if q and q.strip():
-            stmt = stmt.where(Folder.name.ilike(f"%{q.strip()}%"))
+            clean_q = q.strip()
+            count_stmt = count_stmt.where(Folder.name.ilike(f"%{clean_q}%"))
+            stmt = stmt.where(Folder.name.ilike(f"%{clean_q}%"))
+
+        total = await session.scalar(count_stmt) or 0
+        total_pages = (total + limit - 1) // limit if total > 0 else 0
 
         # Sorting
         sort_column = Folder.name
@@ -106,7 +115,7 @@ class FolderService:
         stmt = stmt.limit(limit).offset(offset)
 
         result = await session.scalars(stmt)
-        return list(result.all())
+        return list(result.all()), total, total_pages
 
     @classmethod
     async def get_folder(cls, session: AsyncSession, user: User, folder_id: uuid.UUID) -> Folder:

@@ -13,6 +13,7 @@ from app.schemas.folder import (
     FolderCreate,
     FolderRead,
     FolderUpdate,
+    PaginatedFolderResponse,
 )
 from app.services.folder_service import FolderService
 
@@ -41,7 +42,7 @@ async def create_folder(
 
 @router.get(
     "",
-    response_model=list[FolderRead],
+    response_model=PaginatedFolderResponse,
     status_code=status.HTTP_200_OK,
     summary="List root folders or subfolders of a given parent with search, pagination, and sorting",
 )
@@ -54,8 +55,8 @@ async def list_folders(
     limit: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 50,
     sort_by: Annotated[str, Query(description="Sort by: name, created_at, updated_at")] = "name",
     order: Annotated[str, Query(description="Sort order: asc, desc")] = "asc",
-) -> list[FolderRead]:
-    folders = await FolderService.list_folders(
+) -> PaginatedFolderResponse:
+    folders, total, total_pages = await FolderService.list_folders(
         session=session,
         user=current_user,
         parent_id=parent_id,
@@ -65,7 +66,13 @@ async def list_folders(
         sort_by=sort_by,
         order=order,
     )
-    return [FolderRead.model_validate(f) for f in folders]
+    return PaginatedFolderResponse(
+        items=[FolderRead.model_validate(f) for f in folders],
+        page=page,
+        limit=limit,
+        total=total,
+        total_pages=total_pages,
+    )
 
 
 @router.get(
