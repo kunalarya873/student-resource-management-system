@@ -1,0 +1,15 @@
+host=db.antwbtbiosnljwbuurcz.supabase.co
+port=5432
+database=postgres
+user=postgres
+password=ChaiPani@1234
+
+postgresql://postgres:ChaiPani@1234@db.antwbtbiosnljwbuurcz.supabase.co:5432/postgres
+
+anon_key = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFudHdidGJpb3NubGp3YnV1cmN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI5MDI1NDUsImV4cCI6MjEwODQ3ODU0NX0.XJ5KpVgiaKtJcL6ppkPrS2LtlwWHLqackAYIviFZOSo
+
+service_role = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFudHdidGJpb3NubGp3YnV1cmN6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MjkwMjU0NSwiZXhwIjoyMTA4NDc4NTQ1fQ.uz-NDX7m-VsT4oqNU4PrT0eHgvCUv--L--UmlLTEg-Q
+
+endpoint = https://antwbtbiosnljwbuurcz.storage.supabase.co/storage/v1/s3
+
+region = ap-southeast-1

@@ -1,0 +1,6 @@
+[submodule "backend"]
+	path = backend
+	url = https://github.com/kunalarya873/student-resource-backend.git
+[submodule "frontend"]
+	path = frontend
+	url = https://github.com/kunalarya873/student-resource-frontend.git

@@ -14,3 +14,6 @@ local_storage/
 supabase-py/
 *.log
 .agents/logs/
+node_modules/
+.DS_Store
+*.local
